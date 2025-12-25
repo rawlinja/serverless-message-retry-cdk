@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import 'source-map-support/register'
 import { App } from 'aws-cdk-lib'
-import { BaseStack } from '../stacks/base-stack'
+import { BaseStack } from '../Infrastructure/stacks/base-stack'
 
 const app = new App()
 new BaseStack(app, 'BaseStack', {

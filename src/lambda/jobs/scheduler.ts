@@ -1,5 +1,5 @@
 const handler = async () => {
-    console.log('hello')
+  console.log('hello')
 }
 
-export { handler  }
+export { handler }

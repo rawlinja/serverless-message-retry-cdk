@@ -1,10 +1,10 @@
 type Message = {
-    firstName: string
-    lastName: string
-    email: string
-    phone: string
-    message: string
-    createdAt: string
+  firstName?: string
+  lastName?: string
+  email: string
+  phone?: string
+  createdAt?: string,
+  data?: string
 }
 
-export { Message }
+export type { Message }

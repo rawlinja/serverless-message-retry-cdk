@@ -13,7 +13,7 @@ type PersistenceStackExports = {
   tableStreamArn: string
 }
 
-export class PersistenceStack extends Stack {
+class PersistenceStack extends Stack {
   exports: PersistenceStackExports
 
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -21,12 +21,14 @@ export class PersistenceStack extends Stack {
 
     const table = new Table(this, MESSAGES_TABLE_ID, {
       tableName: TABLE_NAME,
-      partitionKey: { name: PARTITION_KEY, type: dynamodb.AttributeType.STRING },
+      partitionKey: {
+        name: PARTITION_KEY,
+        type: dynamodb.AttributeType.STRING,
+      },
       sortKey: { name: SORT_KEY, type: dynamodb.AttributeType.STRING },
       stream: dynamodb.StreamViewType.NEW_AND_OLD_IMAGES,
       removalPolicy: RemovalPolicy.DESTROY,
     })
-
 
     this.exports = {
       tableArn: table.tableArn,
@@ -34,3 +36,5 @@ export class PersistenceStack extends Stack {
     }
   }
 }
+
+export { PersistenceStack }

@@ -6,7 +6,7 @@ import { PersistenceStack } from './persistence-stack'
 import { SchedulerStack } from './scheduler-stack'
 import { ExponentialBackoffStack } from './exponential-backoff-stack'
 
-export const LAMBDA_SQS_PATH = '../lambda/sqs/index.ts'
+export const LAMBDA_SQS_PATH = '../../lambda/sqs/index.ts'
 export const MESSAGES_QUEUE_URL_PARAMETER_NAME = '/prod/messages/queue-url'
 
 export const lambdaFunctionIdentifier = (name: string): string => {
@@ -25,7 +25,7 @@ export class BaseStack extends Stack {
       tableArn,
     })
     const { queueArn, queueUrlParameterArn } = messagingStack.exports
-    
+
     new ApiStack(scope, 'ApiStack', {
       queue: {
         queueArn,
@@ -33,27 +33,45 @@ export class BaseStack extends Stack {
       },
       resources: [
         {
+          rootName: 'MessagesApi',
           name: 'messages',
           routes: [
             {
               method: 'POST',
-              handler: 'index.post'
+              handler: 'index.messagesPost',
             },
             {
               method: 'GET',
-              handler: 'index.get'
+              handler: 'index.messagesGet',
+            },
+          ],
+        },
+        {
+          rootName: 'RetryApi',
+          name: 'retry',
+          routes: [
+            {
+              method: 'POST',
+              handler: 'index.retryPost',
+            },
+            {
+              method: 'GET',
+              handler: 'index.retryGet',
             },
           ],
         },
       ],
     })
 
-    new SchedulerStack(scope, 'SchedulerStack', { handler: 'index.scheduler', duration: Duration.days(12) })
+    new SchedulerStack(scope, 'SchedulerStack', {
+      handler: 'index.scheduler',
+      duration: Duration.days(12),
+    })
 
     new ExponentialBackoffStack(scope, 'ExponentialBackoffStack', {
       handler: 'index.delete',
       tableArn,
-      tableStreamArn
+      tableStreamArn,
     })
   }
 }

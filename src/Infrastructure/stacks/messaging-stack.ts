@@ -7,9 +7,12 @@ import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources'
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs'
 import * as iam from 'aws-cdk-lib/aws-iam'
 import * as Path from 'path'
-import { MESSAGES_QUEUE_URL_PARAMETER_NAME, lambdaFunctionIdentifier } from './base-stack'
+import {
+  MESSAGES_QUEUE_URL_PARAMETER_NAME,
+  lambdaFunctionIdentifier,
+} from './base-stack'
 
-const LAMBDA_SQS_PATH = '../lambda/sqs/index.ts'
+const LAMBDA_SQS_PATH = '../../lambda/sqs/index.ts'
 const MESSAGES_QUEUE_ID = 'MessagesQueue'
 const MESSAGES_QUEUE_URL_PARAMETER_ID = 'MessagesQueueUrlParameter'
 
@@ -36,7 +39,7 @@ type BuildProps = {
 }
 
 class MessagingStack extends Stack {
-  exports: MessagingStackExports
+  exports: MessagingStackExports = {} as MessagingStackExports
 
   constructor(scope: Construct, id: string, props: MessagingStackProps) {
     super(scope, id, props)
@@ -44,8 +47,7 @@ class MessagingStack extends Stack {
   }
 
   build(props: BuildProps) {
-    const queue = new Queue(this, MESSAGES_QUEUE_ID, {
-    })
+    const queue = new Queue(this, MESSAGES_QUEUE_ID, {})
 
     const messagesQueueUrlParameter = this.buildStringParameter({
       id: MESSAGES_QUEUE_URL_PARAMETER_ID,
@@ -76,12 +78,10 @@ class MessagingStack extends Stack {
     }
   }
 
-  buildLambdaFunction(
-    name: string,
-  ): lambda.Function {
+  buildLambdaFunction(name: string): lambda.Function {
     return new NodejsFunction(this, lambdaFunctionIdentifier(name), {
       architecture: lambda.Architecture.ARM_64,
-      runtime: lambda.Runtime.NODEJS_18_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       handler: name,
       entry: Path.join(__dirname, LAMBDA_SQS_PATH),
     })
@@ -99,7 +99,6 @@ class MessagingStack extends Stack {
       stringValue,
     })
   }
-
 }
 
 export { MessagingStack }

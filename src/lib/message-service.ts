@@ -15,25 +15,47 @@ class MessageService {
         QueueUrl: queueUrl,
         MessageBody: payload,
       })
+      console.log('Sending message to SQS queue:', payload)
       await sqsClient.send(input)
     } catch (error) {
+      console.log('Error sending message to SQS queue:', error)
       throw error
     }
   }
 
   async storeMessage(message: Message) {
     if (
-      !message.firstName ||
-      !message.lastName ||
       !message.email ||
       !message.createdAt
     ) {
+      console.error('Missing required fields:', message)
       throw new Error('Missing required fields')
     }
 
     try {
+      console.log('Storing message to database:', message)
       await repository.create(message)
     } catch (error) {
+      console.error('Error storing message to database:', error)
+      throw error
+    }
+  }
+
+  async retryMessage(message: Message) {
+    if (
+      !message.email ||
+      !message.createdAt
+    ) {
+      console.error('Missing required fields:', message)
+      throw new Error('Missing required fields')
+    }
+
+    try {
+      console.log('Retrying message storage to database:', message)
+      await repository.create(message)
+    } catch (error) {
+      console.error('Error retrying message storage to database:', error)
+      console.log(error)
       throw error
     }
   }

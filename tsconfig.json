@@ -1,27 +1,22 @@
-{
+{"$schema": "https://json.schemastore.org/tsconfig",
+  "_version": "22.0.0",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "CommonJS",
-    "moduleResolution": "node",
     "lib": [
-      "es2022",
-      "dom"
+      "es2024",
+      "ESNext.Array",
+      "ESNext.Collection",
+      "ESNext.Iterator"
     ],
-    "declaration": false,
+    "module": "nodenext",
+    "target": "es2022",
     "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "noImplicitThis": true,
-    "alwaysStrict": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": false,
-    "inlineSourceMap": true,
-    "inlineSources": true,
-    "experimentalDecorators": true,
-    "strictPropertyInitialization": false,
-    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "moduleResolution": "nodenext",
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": false,
     "typeRoots": [
       "./node_modules/@types"
     ],
@@ -30,12 +25,7 @@
       "/opt/nodejs/node_modules/*": [
         "node_modules/*"
       ]
-    },
-    "outDir": "dist"
+    }
   },
-  "exclude": [
-    "node_modules",
-    "cdk.out",
-    "dist/**/*"
-  ]
+  "exclude": ["node_modules", "cdk.out", "dist/**/*"]
 }

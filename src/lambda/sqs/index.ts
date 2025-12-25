@@ -1,2 +1,1 @@
-import { handler as store } from './store'
-export { store }
+export { handler as store } from './handler'

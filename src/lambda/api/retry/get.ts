@@ -14,5 +14,5 @@ const get = async (
   }
 }
 
-const handler = middy().use(jsonBodyParser()).handler(get)
+const handler = middy().use(jsonBodyParser()).handler(get as any)
 export { handler }

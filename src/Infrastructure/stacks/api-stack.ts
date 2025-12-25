@@ -1,4 +1,3 @@
-
 import { Construct } from 'constructs'
 import * as iam from 'aws-cdk-lib/aws-iam'
 import { Stack, StackProps } from 'aws-cdk-lib'
@@ -8,9 +7,12 @@ import * as lambda from 'aws-cdk-lib/aws-lambda'
 import { StringParameter } from 'aws-cdk-lib/aws-ssm'
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs'
 import * as Path from 'path'
-import { MESSAGES_QUEUE_URL_PARAMETER_NAME, lambdaFunctionIdentifier } from './base-stack'
+import {
+  MESSAGES_QUEUE_URL_PARAMETER_NAME,
+  lambdaFunctionIdentifier,
+} from './base-stack'
 
-const LAMBDA_API_PATH = '../lambda/api/index.ts'
+const LAMBDA_API_PATH = '../../lambda/api/index.ts'
 const API_ROOT = 'MessagesApi'
 const DEFAULT_REST_API_HANDLER = 'index.base'
 const AUTHORIZE_API_HANDLER = 'index.authorize'
@@ -32,6 +34,7 @@ type Route = {
 }
 
 type Resource = {
+  rootName: string
   name: string
   routes: Route[]
 }
@@ -53,7 +56,7 @@ type BuildProps = {
 }
 
 type CreateRestApiProps = BuildProps & {
-  authorizer: apigateway.TokenAuthorizer,
+  authorizer: apigateway.TokenAuthorizer
   middyLayer: lambda.ILayerVersion
 }
 
@@ -66,18 +69,16 @@ class ApiStack extends Stack {
   }
 
   build(props: BuildProps) {
-
     const authorizer = this.createTokenAuthorizer()
-    
+
     const middyLayer = this.getMiddyLayer()
 
     this.createRestApi({
       resources: props.resources,
       queueArn: props.queueArn,
       authorizer,
-      middyLayer: middyLayer
+      middyLayer: middyLayer,
     })
-
   }
 
   createTokenAuthorizer(): apigateway.TokenAuthorizer {
@@ -85,13 +86,16 @@ class ApiStack extends Stack {
       MESSAGES_JWT_SECRET_NAME,
     })
 
-    const secret = secretsmanager.Secret.fromSecretNameV2(this, SECRET_MANAGER_JWT_SECRET_ID, MESSAGES_JWT_SECRET_NAME)
+    const secret = secretsmanager.Secret.fromSecretNameV2(
+      this,
+      SECRET_MANAGER_JWT_SECRET_ID,
+      MESSAGES_JWT_SECRET_NAME,
+    )
     secret.grantRead(authorizeLambda)
-    
-    return new apigateway.TokenAuthorizer(this, TOKEN_AUTHORIZER_ID, {
-      handler: authorizeLambda
-    })
 
+    return new apigateway.TokenAuthorizer(this, TOKEN_AUTHORIZER_ID, {
+      handler: authorizeLambda,
+    })
   }
 
   getMiddyLayer(): lambda.ILayerVersion {
@@ -101,19 +105,24 @@ class ApiStack extends Stack {
       {
         parameterName: MIDDY_LAMBDA_LAYER_ARN_PARAMETER_NAME,
         version: 1,
-      }
+      },
     ).stringValue
 
-    return lambda.LayerVersion.fromLayerVersionAttributes(this, LAYER_VERSION_ATTRIBUTES_ID, {
-      layerVersionArn: middyLayerArn,
-    })
-
+    return lambda.LayerVersion.fromLayerVersionAttributes(
+      this,
+      LAYER_VERSION_ATTRIBUTES_ID,
+      {
+        layerVersionArn: middyLayerArn,
+      },
+    )
   }
 
   createRestApi(props: CreateRestApiProps) {
     const messageQueueUrl = this.getMessageQueueUrl()
 
-    const sendMessagePolicyStatement = this.createSendMessagePolicyStatement(props.queueArn)
+    const sendMessagePolicyStatement = this.createSendMessagePolicyStatement(
+      props.queueArn,
+    )
 
     const api = new apigateway.LambdaRestApi(this, API_ROOT, {
       handler: this.buildLambdaFunction(DEFAULT_REST_API_HANDLER, {}),
@@ -128,9 +137,13 @@ class ApiStack extends Stack {
       }
 
       resource.routes.forEach((route) => {
-        const lambda = this.buildLambdaFunction(route.handler, {
-          MESSAGES_QUEUE_URL: messageQueueUrl,
-        }, props.middyLayer)
+        const lambda = this.buildLambdaFunction(
+          route.handler,
+          {
+            MESSAGES_QUEUE_URL: messageQueueUrl,
+          },
+          props.middyLayer,
+        )
         lambda.addToRolePolicy(sendMessagePolicyStatement)
 
         messagesResource?.addMethod(
@@ -138,7 +151,7 @@ class ApiStack extends Stack {
           new apigateway.LambdaIntegration(lambda),
           {
             authorizer: props.authorizer,
-          }
+          },
         )
       })
     })
@@ -151,9 +164,8 @@ class ApiStack extends Stack {
       {
         parameterName: MESSAGES_QUEUE_URL_PARAMETER_NAME,
         version: 1,
-      }
+      },
     ).stringValue
-
   }
 
   createSendMessagePolicyStatement(queueArn: string): iam.PolicyStatement {
@@ -167,11 +179,11 @@ class ApiStack extends Stack {
   buildLambdaFunction(
     name: string,
     environment: LambdaEnvironment,
-    middyLayer?: lambda.ILayerVersion
+    middyLayer?: lambda.ILayerVersion,
   ): lambda.Function {
     return new NodejsFunction(this, lambdaFunctionIdentifier(name), {
       architecture: lambda.Architecture.ARM_64,
-      runtime: lambda.Runtime.NODEJS_18_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       handler: name,
       entry: Path.join(__dirname, LAMBDA_API_PATH),
       layers: middyLayer ? [middyLayer] : [],
@@ -179,5 +191,12 @@ class ApiStack extends Stack {
     })
   }
 }
+
+/*type LambdaFunctionProps = {
+  name: string
+  path: string
+  environment: LambdaEnvironment
+  middyLayer?: lambda.ILayerVersion
+}*/
 
 export { ApiStack }
