@@ -113,3 +113,7 @@ yarn destroy      # Tear down stack
 ## Documentation
 
 - [Architecture Diagram](docs/ARCHITECTURE.md) - Detailed system architecture with Mermaid diagrams
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

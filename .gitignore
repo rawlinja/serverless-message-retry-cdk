@@ -3,6 +3,8 @@ cdk.out
 dist
 coverage
 token.js
+create_token.js
+test.js
 .claude/
 .vscode/
 
