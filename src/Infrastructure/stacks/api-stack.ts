@@ -192,11 +192,4 @@ class ApiStack extends Stack {
   }
 }
 
-/*type LambdaFunctionProps = {
-  name: string
-  path: string
-  environment: LambdaEnvironment
-  middyLayer?: lambda.ILayerVersion
-}*/
-
 export { ApiStack }

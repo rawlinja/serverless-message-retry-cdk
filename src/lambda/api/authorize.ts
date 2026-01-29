@@ -6,8 +6,10 @@ import {
   SecretsManagerClient,
   GetSecretValueCommand,
 } from '@aws-sdk/client-secrets-manager'
-
+import { Logger } from '@aws-lambda-powertools/logger'
 import * as jwt from 'jsonwebtoken'
+
+const logger = new Logger({ serviceName: 'api-authorizer' })
 
 type Token = {
   sub: string
@@ -30,6 +32,7 @@ const authorize = async (
   token = token.replace(/^Bearer\s/, '')
 
   if (!token) {
+    logger.warn('No token provided')
     return generatePolicy('*', 'Deny', event.methodArn)
   }
 
@@ -43,9 +46,10 @@ const authorize = async (
       algorithms: ['HS256'],
     })
 
+    logger.info('Token verified successfully', { sub })
     return generatePolicy(sub, 'Allow', event.methodArn)
   } catch (error) {
-    console.error(error)
+    logger.error('Token verification failed', { error, sub })
     return generatePolicy(sub, 'Deny', event.methodArn)
   }
 }
@@ -62,7 +66,7 @@ async function getJwtSecret() {
       throw new Error('SecretString is empty')
     }
   } catch (error) {
-    console.error(error)
+    logger.error('Error fetching JWT secret', { error })
     throw error
   }
 }

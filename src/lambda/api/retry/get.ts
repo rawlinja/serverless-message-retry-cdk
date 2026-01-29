@@ -1,6 +1,4 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
-//import middy from '@middy/core'
-//import jsonBodyParser from '@middy/http-json-body-parser'
 import middy from '/opt/nodejs/node_modules/@middy/core'
 import jsonBodyParser from '/opt/nodejs/node_modules/@middy/http-json-body-parser'
 

@@ -8,10 +8,7 @@ describe('PersistanceStack', () => {
   it('should have a table', () => {
     const stack = new PersistenceStack(new App(), 'PersistenceStack', {})
 
-    // Prepare the stack for assertions.
     const template = Template.fromStack(stack)
-
-    console.log(template.toJSON())
 
     template.hasResourceProperties('AWS::DynamoDB::Table', {
       TableName: TABLE_NAME,

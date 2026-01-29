@@ -1,14 +1,15 @@
 import { DynamoDBStreamEvent, DynamoDBStreamHandler } from 'aws-lambda'
+import { Logger } from '@aws-lambda-powertools/logger'
+
+const logger = new Logger({ serviceName: 'dynamodb-delete-trigger' })
 
 const handler: DynamoDBStreamHandler = async (
   event: DynamoDBStreamEvent,
 ): Promise<any> => {
-  console.log('Received event:', JSON.stringify(event, null, 2))
+  logger.info('Received DynamoDB stream event', { recordCount: event.Records.length })
   event.Records.forEach((record: any) => {
-    console.log(record.body)
-
     if (record.eventName === 'REMOVE') {
-      console.log('Record deleted', record)
+      logger.info('Record deleted', { keys: record.dynamodb?.Keys })
     }
   })
 }

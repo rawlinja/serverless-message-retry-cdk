@@ -1,26 +1,26 @@
 import { SQSEvent } from 'aws-lambda'
+import { Logger } from '@aws-lambda-powertools/logger'
 import { MessageService, Message } from '../../lib/message-service'
 
+const logger = new Logger({ serviceName: 'sqs-handler' })
 const service = new MessageService()
 
 const handler = async (event: SQSEvent) => {
   try {
     const messages = event.Records.map((record) => {
-      console.log('Processing record:', JSON.stringify(record, null, 2))
+      logger.info('Processing record', { messageId: record.messageId })
       if (!record.body) {
-        console.error('Record body is empty:', record)
+        logger.error('Record body is empty', { record })
         throw new Error('Record body is empty')
       }
       if (!record.body.startsWith('{')) {
-        console.error('Record body is not a valid JSON:', record.body)
+        logger.error('Record body is not a valid JSON', { body: record.body })
         throw new Error('Record body is not a valid JSON')
       }
-      console.log('Record body:', record.body)
-      // Parse the record body to ensure it is a valid Message object
       try {
         JSON.parse(record.body)
       } catch (error) {
-        console.error('Error parsing record body:', error)
+        logger.error('Error parsing record body', { error, body: record.body })
         throw new Error('Record body is not a valid JSON')
       }
       return JSON.parse(record.body) as Message
@@ -29,10 +29,10 @@ const handler = async (event: SQSEvent) => {
     for (const message of messages) {
       const createdAt = new Date().toISOString()
       await service.storeMessage({ ...message, createdAt })
-      console.log('message has been stored to database 👉', message)
+      logger.info('Message stored to database', { email: message.email })
     }
   } catch (error) {
-    console.log(error)
+    logger.error('Error processing SQS event', { error })
   }
 }
 

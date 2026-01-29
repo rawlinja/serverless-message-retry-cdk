@@ -1,6 +1,4 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
-//import middy from '@middy/core'
-//import jsonBodyParser from '@middy/http-json-body-parser'
 import middy from '/opt/nodejs/node_modules/@middy/core'
 import jsonBodyParser from '/opt/nodejs/node_modules/@middy/http-json-body-parser'
 
@@ -14,5 +12,5 @@ const get = async (
   }
 }
 
-const handler = middy().use(jsonBodyParser()).handler(get as any) // 'as any' is used to bypass type issues with middy and the handler signature
+const handler = middy().use(jsonBodyParser()).handler(get as any)
 export { handler }

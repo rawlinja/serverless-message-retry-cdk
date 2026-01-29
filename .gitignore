@@ -5,3 +5,8 @@ coverage
 token.js
 .claude/
 .vscode/
+
+# Yarn 4
+.yarn/install-state.gz
+.yarn/cache
+.yarn/unplugged
