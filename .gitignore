@@ -3,3 +3,5 @@ cdk.out
 dist
 coverage
 token.js
+.claude/
+.vscode/
