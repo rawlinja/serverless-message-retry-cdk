@@ -67,8 +67,6 @@ graph TB
     %% API Handlers to MessageService
     PostMsg -->|queueMessage| MS
     PostRetry -->|queueMessage| MS
-    GetMsg -->|Future: retrieve| MS
-    GetRetry -->|Future: retrieve| MS
 
     %% MessageService to SQS
     MS -->|SendMessage| SQS
@@ -90,10 +88,6 @@ graph TB
 
     %% EventBridge Scheduler
     EB -->|Trigger| Scheduler
-    Scheduler -.->|Future: retry logic| MS
-
-    %% Delete Trigger
-    DeleteTrigger -.->|Future: backoff logic| MS
 
     %% SSM Parameter Store
     PostMsg -->|Read Queue URL| SSM
@@ -153,46 +147,6 @@ sequenceDiagram
     MS-->>SC: Complete
 ```
 
-### 2. Exponential Backoff Flow (Future Implementation)
-
-```mermaid
-sequenceDiagram
-    participant DB as DynamoDB Table
-    participant S as DynamoDB Stream
-    participant DT as Delete Trigger Lambda
-    participant MS as MessageService
-
-    DB->>S: REMOVE event
-    S->>DT: Trigger (batch: 5)
-    Note over DT: Future: Implement exponential<br/>backoff cleanup logic
-    DT->>MS: (Future) Calculate delay
-    DT->>MS: (Future) Update retry status
-    MS-->>DT: Backoff scheduled
-```
-
-### 3. Scheduled Retry Flow (Future Implementation)
-
-```mermaid
-sequenceDiagram
-    participant EB as EventBridge
-    participant SL as Scheduler Lambda
-    participant MS as MessageService
-    participant MR as MessageRepository
-    participant DB as DynamoDB
-    participant SQ as SQS Queue
-
-    EB->>SL: Trigger (every 12 days)
-    Note over SL: Future: Implement retry logic
-    SL->>MR: (Future) Query failed messages
-    MR->>DB: Query by status
-    DB-->>MR: Failed messages
-    MR-->>SL: List of messages
-    loop For each failed message
-        SL->>MS: (Future) retryMessage(msg)
-        MS->>SQ: SendMessage (retry)
-    end
-```
-
 ## Component Responsibilities
 
 ### Infrastructure Stacks
@@ -242,17 +196,16 @@ All stacks communicate via **SSM Parameter Store**:
 1. **Authentication**: JWT tokens (HS256) validated by custom authorizer
 2. **Authorization**: API Gateway enforces authorizer on all routes
 3. **Secrets**: JWT secret stored in AWS Secrets Manager (not SSM)
-4. **IAM**: Least privilege - each Lambda has specific permissions
-5. **Network**: All resources in us-east-1, no VPC (serverless only)
+4. **Network**: All resources in us-east-1, no VPC (serverless only)
 
 ## Technology Choices
 
-| Concern | Technology | Rationale |
-|---------|-----------|-----------|
-| **Runtime** | Node.js 22.x | Latest LTS with native TypeScript support via tsx |
-| **Architecture** | ARM64 (Graviton2) | 20% cost savings vs x86_64 |
-| **Package Manager** | Yarn 4.5.3 | Faster, better workspace support |
-| **IaC** | AWS CDK 2.x | Type-safe infrastructure, better than CloudFormation |
-| **API** | API Gateway REST API (v1) | Token authorizer support, request validation |
-| **Middleware** | Middy | Reduces boilerplate in Lambda handlers |
-| **Testing** | Jest + ts-jest | Industry standard for TypeScript testing |
+| Technology | Description |
+|------------|-------------|
+| Node.js 22.x | LTS runtime, TypeScript execution via tsx |
+| ARM64 (Graviton2) | Lambda compute architecture |
+| Yarn 4.5.3 | Package manager |
+| AWS CDK 2.x | Infrastructure as code |
+| API Gateway REST API (v1) | HTTP API with token authorizer support |
+| Middy | Middleware framework for Lambda handlers |
+| Jest + ts-jest | Testing framework |
