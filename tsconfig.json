@@ -22,9 +22,9 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "/opt/nodejs/node_modules/*": [
-        "node_modules/*"
-      ]
+      "/opt/nodejs/node_modules/*": ["node_modules/*"],
+      "@lib/*": ["src/lib/*"],
+      "@stacks/*": ["src/Infrastructure/stacks/*"]
     }
   },
   "exclude": ["node_modules", "cdk.out", "dist/**/*"]

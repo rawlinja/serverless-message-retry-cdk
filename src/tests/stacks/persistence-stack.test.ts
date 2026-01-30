@@ -1,5 +1,5 @@
 import { Capture, Match, Template } from 'aws-cdk-lib/assertions'
-import { PersistenceStack } from '../../Infrastructure/stacks'
+import { PersistenceStack } from '@stacks/index'
 import { App } from 'aws-cdk-lib'
 
 const TABLE_NAME = 'Messages'

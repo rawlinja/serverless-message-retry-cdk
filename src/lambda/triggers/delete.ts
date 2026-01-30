@@ -5,9 +5,9 @@ const logger = new Logger({ serviceName: 'dynamodb-delete-trigger' })
 
 const handler: DynamoDBStreamHandler = async (
   event: DynamoDBStreamEvent,
-): Promise<any> => {
+): Promise<void> => {
   logger.info('Received DynamoDB stream event', { recordCount: event.Records.length })
-  event.Records.forEach((record: any) => {
+  event.Records.forEach((record) => {
     if (record.eventName === 'REMOVE') {
       logger.info('Record deleted', { keys: record.dynamodb?.Keys })
     }

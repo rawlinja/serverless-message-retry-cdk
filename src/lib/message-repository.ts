@@ -1,11 +1,11 @@
 import { Logger } from '@aws-lambda-powertools/logger'
 import { DynamoDBRepository } from './dynamodb-repository'
-import { Message } from './message-service'
 import { generateId } from './nanoid-utils'
+import type { Message, MessageRecord } from './types'
 
 const logger = new Logger({ serviceName: 'message-repository' })
 
-class MessageRepository extends DynamoDBRepository {
+class MessageRepository extends DynamoDBRepository<MessageRecord> {
   constructor(tableName: string) {
     super(tableName)
   }

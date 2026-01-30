@@ -1,6 +1,7 @@
 import { SQSEvent } from 'aws-lambda'
 import { Logger } from '@aws-lambda-powertools/logger'
-import { MessageService, Message } from '../../lib/message-service'
+import { MessageService } from '@lib/message-service'
+import type { Message } from '@lib/types'
 
 const logger = new Logger({ serviceName: 'sqs-handler' })
 const service = new MessageService()

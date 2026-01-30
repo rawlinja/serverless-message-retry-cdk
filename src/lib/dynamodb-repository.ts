@@ -5,20 +5,19 @@ type CreateOptions = {
   conditionExpression?: string
 }
 
-class DynamoDBRepository {
+class DynamoDBRepository<T> {
   private dynamoDBClient: DynamoDBClient
 
   constructor(readonly tableName: string) {
     this.dynamoDBClient = new DynamoDBClient({ region: 'us-east-1' })
   }
 
-  async create(item: Record<string, any>, createOptions?: CreateOptions) {
-    // eslint-disable-next-line no-useless-catch
+  async create(item: T, createOptions?: CreateOptions) {
     try {
       const params = {
         TableName: this.tableName,
         Item: this.serialize(item),
-        conditionExpression: createOptions?.conditionExpression,
+        ConditionExpression: createOptions?.conditionExpression,
       }
       const command = new PutItemCommand(params)
       await this.dynamoDBClient.send(command)
@@ -27,7 +26,7 @@ class DynamoDBRepository {
     }
   }
 
-  private serialize(item: Record<string, any>) {
+  private serialize(item: T) {
     return marshall(item, { removeUndefinedValues: true })
   }
 }

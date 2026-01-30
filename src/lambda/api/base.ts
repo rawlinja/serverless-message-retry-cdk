@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
-import { returnError } from '../../lib/api-utils'
+import { returnError } from '@lib/api-utils'
 
 const base = async (
   event: APIGatewayProxyEvent,

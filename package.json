@@ -49,6 +49,7 @@
   "packageManager": "yarn@4.5.3",
   "scripts": {
     "build": "tsc",
+    "rebuild": "rm -rf node_modules && yarn install",
     "clean": "rm -rf lib",
     "synth": "cdk synth",
     "deploy": "cdk deploy",

@@ -11,4 +11,8 @@ module.exports = {
   collectCoverage: true,
   coverageDirectory: 'coverage',
   collectCoverageFrom: ['src/**/*.{ts}', '!**/node_modules/**'],
+  moduleNameMapper: {
+    '^@lib/(.*)$': '<rootDir>/src/lib/$1',
+    '^@stacks/(.*)$': '<rootDir>/src/Infrastructure/stacks/$1',
+  },
 }

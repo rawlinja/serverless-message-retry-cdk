@@ -12,5 +12,5 @@ const get = async (
   }
 }
 
-const handler = middy().use(jsonBodyParser()).handler(get as any)
+const handler = middy<APIGatewayProxyEvent, APIGatewayProxyResult>().use(jsonBodyParser()).handler(get)
 export { handler }

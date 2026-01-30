@@ -1,7 +1,7 @@
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs'
 import { Logger } from '@aws-lambda-powertools/logger'
 import { MessageRepository } from './message-repository'
-import { Message } from './types'
+import type { Message } from './types' 
 
 const logger = new Logger({ serviceName: 'message-service' })
 
@@ -11,7 +11,7 @@ const sqsClient = new SQSClient({ region: 'us-east-1' })
 const repository = new MessageRepository('Messages')
 
 class MessageService {
-  async queueMessage(message: any) {
+  async queueMessage(message: Message) {
     const payload = JSON.stringify(message)
     try {
       const input = new SendMessageCommand({
@@ -57,4 +57,4 @@ class MessageService {
   }
 }
 
-export { MessageService, Message }
+export { MessageService }
