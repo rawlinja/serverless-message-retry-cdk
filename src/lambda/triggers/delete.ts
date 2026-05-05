@@ -2,13 +2,11 @@ import { DynamoDBStreamEvent } from 'aws-lambda'
 import { unmarshall } from '@aws-sdk/util-dynamodb'
 import { AttributeValue } from '@aws-sdk/client-dynamodb'
 import { Logger } from '@aws-lambda-powertools/logger'
-import { MessageService } from '@lib/message-service'
+import { MessageService, MAX_RETRIES } from '@lib/message-service'
 import type { Message } from '@lib/types'
 
 const logger = new Logger({ serviceName: 'dynamodb-delete-trigger' })
 const service = new MessageService()
-const MAX_RETRIES = 5
-
 const handler = async (event: DynamoDBStreamEvent): Promise<void> => {
   logger.info('Received DynamoDB stream event', { recordCount: event.Records.length })
 
@@ -28,7 +26,7 @@ const handler = async (event: DynamoDBStreamEvent): Promise<void> => {
       const retryCount = message.retryCount ?? 0
 
       if (retryCount >= MAX_RETRIES) {
-        logger.error('Message exceeded max retries, dead lettered', {
+        logger.warn('Message exceeded max retries, dead lettered', {
           email: message.email,
           retryCount,
         })

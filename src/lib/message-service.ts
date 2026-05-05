@@ -8,6 +8,7 @@ const queueUrl = process.env.MESSAGES_QUEUE_URL
 const sqsClient = new SQSClient({ region: 'us-east-1' })
 const repository = new MessageRepository('Messages')
 
+export const MAX_RETRIES = 5
 const BASE_DELAY_MS = 60_000
 
 class MessageService {
