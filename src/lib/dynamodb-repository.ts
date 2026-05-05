@@ -11,7 +11,7 @@ type CreateOptions = {
 }
 
 type QueryOptions = {
-  indexName: string
+  indexName?: string
   keyConditionExpression: string
   expressionAttributeValues: Record<string, unknown>
 }
@@ -37,14 +37,18 @@ class DynamoDBRepository<T> {
   }
 
   async query(options: QueryOptions): Promise<T[]> {
-    const command = new QueryCommand({
-      TableName: this.tableName,
-      IndexName: options.indexName,
-      KeyConditionExpression: options.keyConditionExpression,
-      ExpressionAttributeValues: marshall(options.expressionAttributeValues),
-    })
-    const result = await this.dynamoDBClient.send(command)
-    return (result.Items ?? []).map((item) => unmarshall(item) as T)
+    try {
+      const command = new QueryCommand({
+        TableName: this.tableName,
+        IndexName: options.indexName,
+        KeyConditionExpression: options.keyConditionExpression,
+        ExpressionAttributeValues: marshall(options.expressionAttributeValues),
+      })
+      const result = await this.dynamoDBClient.send(command)
+      return (result.Items ?? []).map((item) => unmarshall(item) as T)
+    } catch (error) {
+      throw error
+    }
   }
 
   async deleteItem(pk: string, sk: string): Promise<void> {
@@ -61,3 +65,4 @@ class DynamoDBRepository<T> {
 }
 
 export { DynamoDBRepository }
+export type { CreateOptions, QueryOptions }
