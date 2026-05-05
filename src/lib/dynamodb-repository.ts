@@ -52,11 +52,15 @@ class DynamoDBRepository<T> {
   }
 
   async deleteItem(pk: string, sk: string): Promise<void> {
-    const command = new DeleteItemCommand({
-      TableName: this.tableName,
-      Key: marshall({ pk, sk }),
-    })
-    await this.dynamoDBClient.send(command)
+    try {
+      const command = new DeleteItemCommand({
+        TableName: this.tableName,
+        Key: marshall({ pk, sk }),
+      })
+      await this.dynamoDBClient.send(command)
+    } catch (error) {
+      throw error
+    }
   }
 
   private serialize(item: T) {
