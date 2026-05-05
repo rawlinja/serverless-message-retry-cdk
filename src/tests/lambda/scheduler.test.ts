@@ -4,7 +4,7 @@ import {
   QueryCommand,
   DeleteItemCommand,
 } from '@aws-sdk/client-dynamodb'
-import { marshall } from '@aws-sdk/util-dynamodb'
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
 import { handler } from '../../lambda/jobs/scheduler'
 
 const ddbMock = mockClient(DynamoDBClient)
@@ -17,7 +17,10 @@ beforeEach(() => {
   jest.setSystemTime(FIXED_NOW)
 })
 
-afterEach(() => jest.useRealTimers())
+afterEach(() => {
+  jest.useRealTimers()
+  delete process.env.LOOKBACK_DAYS
+})
 
 const mockRecord = (overrides = {}) =>
   marshall({
@@ -40,6 +43,11 @@ describe('scheduler handler', () => {
     await handler()
 
     expect(ddbMock.commandCalls(QueryCommand)).toHaveLength(3)
+    const calls = ddbMock.commandCalls(QueryCommand)
+    const dates = calls.map((call) =>
+      unmarshall(call.args[0].input.ExpressionAttributeValues!)[':retryDate']
+    )
+    expect(dates).toEqual(['2026-05-05', '2026-05-04', '2026-05-03'])
   })
 
   it('deletes each expired message returned from the GSI', async () => {
