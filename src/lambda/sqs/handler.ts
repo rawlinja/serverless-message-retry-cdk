@@ -39,7 +39,14 @@ const handler = async (event: SQSEvent) => {
         error,
       })
       const retryCount = message.retryCount ?? 0
-      await service.failMessage(messageWithTimestamp, retryCount)
+      try {
+        await service.failMessage(messageWithTimestamp, retryCount)
+      } catch (failError) {
+        logger.error('Failed to record message for retry, message lost', {
+          email: message.email,
+          failError,
+        })
+      }
     }
   }
 }

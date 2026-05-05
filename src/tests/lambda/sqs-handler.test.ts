@@ -88,6 +88,22 @@ describe('sqs handler', () => {
     expect(failStored.retryCount).toBe(2)
   })
 
+  it('skips invalid JSON records and processes valid ones', async () => {
+    ddbMock.on(PutItemCommand).resolves({})
+
+    const badRecord: SQSRecord = {
+      ...makeRecord({ email: 'ok@example.com' }),
+      body: 'not-valid-json',
+    }
+
+    await handler(makeEvent([badRecord, makeRecord({ email: 'ok@example.com' })]))
+
+    const calls = ddbMock.commandCalls(PutItemCommand)
+    expect(calls).toHaveLength(1)
+    const stored = unmarshall(calls[0].args[0].input.Item!)
+    expect(stored.email).toBe('ok@example.com')
+  })
+
   it('processes remaining messages after one fails', async () => {
     ddbMock
       .on(PutItemCommand)
