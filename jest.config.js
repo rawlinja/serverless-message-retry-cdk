@@ -15,4 +15,5 @@ module.exports = {
     '^@lib/(.*)$': '<rootDir>/src/lib/$1',
     '^@stacks/(.*)$': '<rootDir>/src/Infrastructure/stacks/$1',
   },
+  transformIgnorePatterns: ['node_modules/(?!(nanoid)/)'],
 }

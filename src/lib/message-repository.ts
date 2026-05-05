@@ -4,6 +4,7 @@ import { generateId } from './nanoid-utils'
 import type { Message, MessageRecord } from './types'
 
 const logger = new Logger({ serviceName: 'message-repository' })
+const GSI_NAME = 'retryDate-expirationAt-index'
 
 class MessageRepository extends DynamoDBRepository<MessageRecord> {
   constructor(tableName: string) {
@@ -31,6 +32,18 @@ class MessageRepository extends DynamoDBRepository<MessageRecord> {
       logger.error('Error creating item in DynamoDB', { error })
       throw error
     }
+  }
+
+  async queryExpired(retryDate: string, now: string): Promise<MessageRecord[]> {
+    return this.query({
+      indexName: GSI_NAME,
+      keyConditionExpression: 'retryDate = :retryDate AND expirationAt <= :now',
+      expressionAttributeValues: { ':retryDate': retryDate, ':now': now },
+    })
+  }
+
+  async deleteMessage(pk: string, sk: string): Promise<void> {
+    await this.deleteItem(pk, sk)
   }
 }
 
