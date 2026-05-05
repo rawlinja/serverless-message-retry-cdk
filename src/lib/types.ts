@@ -7,6 +7,9 @@ type Message = {
   phone?: string
   createdAt?: string
   data?: string
+  retryCount?: number
+  expirationAt?: string
+  retryDate?: string
 }
 
 type MessageRecord = Message & {
