@@ -1,8 +1,19 @@
-import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb'
-import { marshall } from '@aws-sdk/util-dynamodb'
+import {
+  DynamoDBClient,
+  PutItemCommand,
+  QueryCommand,
+  DeleteItemCommand,
+} from '@aws-sdk/client-dynamodb'
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
 
 type CreateOptions = {
   conditionExpression?: string
+}
+
+type QueryOptions = {
+  indexName: string
+  keyConditionExpression: string
+  expressionAttributeValues: Record<string, unknown>
 }
 
 class DynamoDBRepository<T> {
@@ -14,16 +25,34 @@ class DynamoDBRepository<T> {
 
   async create(item: T, createOptions?: CreateOptions) {
     try {
-      const params = {
+      const command = new PutItemCommand({
         TableName: this.tableName,
         Item: this.serialize(item),
         ConditionExpression: createOptions?.conditionExpression,
-      }
-      const command = new PutItemCommand(params)
+      })
       await this.dynamoDBClient.send(command)
     } catch (error) {
       throw error
     }
+  }
+
+  async query(options: QueryOptions): Promise<T[]> {
+    const command = new QueryCommand({
+      TableName: this.tableName,
+      IndexName: options.indexName,
+      KeyConditionExpression: options.keyConditionExpression,
+      ExpressionAttributeValues: marshall(options.expressionAttributeValues),
+    })
+    const result = await this.dynamoDBClient.send(command)
+    return (result.Items ?? []).map((item) => unmarshall(item) as T)
+  }
+
+  async deleteItem(pk: string, sk: string): Promise<void> {
+    const command = new DeleteItemCommand({
+      TableName: this.tableName,
+      Key: marshall({ pk, sk }),
+    })
+    await this.dynamoDBClient.send(command)
   }
 
   private serialize(item: T) {
