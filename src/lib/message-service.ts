@@ -41,6 +41,10 @@ class MessageService {
   }
 
   async failMessage(message: Message, retryCount: number) {
+    if (!message.email || !message.createdAt) {
+      logger.error('Missing required fields', { message })
+      throw new Error('Missing required fields')
+    }
     const delayMs = Math.pow(2, retryCount) * BASE_DELAY_MS
     const expirationAt = new Date(Date.now() + delayMs).toISOString()
     const retryDate = expirationAt.split('T')[0]

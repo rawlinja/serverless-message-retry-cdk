@@ -33,6 +33,8 @@ describe('failMessage', () => {
     const call = ddbMock.commandCalls(PutItemCommand)[0]
     const stored = unmarshall(call.args[0].input.Item!)
 
+    expect(stored.pk).toBe('EMAIL::test@example.com')
+    expect(stored.sk).toBe('CREATEDAT::2026-05-05T10:00:00.000Z')
     expect(stored.retryCount).toBe(0)
     expect(stored.expirationAt).toBe(
       new Date(FIXED_NOW.getTime() + BASE_DELAY_MS).toISOString()
@@ -87,5 +89,10 @@ describe('failMessage', () => {
     const service = new MessageService()
 
     await expect(service.failMessage(baseMessage, 0)).rejects.toThrow('DynamoDB error')
+  })
+
+  it('throws if email or createdAt is missing', async () => {
+    const service = new MessageService()
+    await expect(service.failMessage({ email: '' }, 0)).rejects.toThrow('Missing required fields')
   })
 })
