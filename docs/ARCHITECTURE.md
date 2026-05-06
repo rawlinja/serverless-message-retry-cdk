@@ -66,7 +66,7 @@ graph TB
 
     %% API Handlers to MessageService
     PostMsg -->|queueMessage| MS
-    PostRetry -->|queueMessage| MS
+    PostRetry -->|seedRetryMessage| MS
 
     %% MessageService to SQS
     MS -->|SendMessage| SQS
@@ -166,7 +166,7 @@ sequenceDiagram
 | **JWT Authorizer** | API Gateway | Validates JWT tokens (HS256) from Secrets Manager |
 | **POST /messages** | API Gateway | Queues new messages to SQS |
 | **GET /messages** | API Gateway | (Stub) Retrieve messages |
-| **POST /retry** | API Gateway | Queues retry messages to SQS |
+| **POST /retry** | API Gateway | Seeds retry records in DynamoDB for the retry pipeline |
 | **GET /retry** | API Gateway | (Stub) Retrieve retry history |
 | **SQS Consumer** | SQS Queue | Persists messages to DynamoDB |
 | **Scheduler** | EventBridge | Sweeps expired messages from DynamoDB every 12 days |

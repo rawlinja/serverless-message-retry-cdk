@@ -65,7 +65,7 @@ All endpoints require JWT Bearer token authorization.
 |--------|----------|-------------|
 | POST | `/messages` | Queue a new message |
 | GET | `/messages` | Retrieve messages (stub) |
-| POST | `/retry` | Queue message for retry |
+| POST | `/retry` | Seed a retry record in DynamoDB |
 | GET | `/retry` | Retrieve retry history (stub) |
 
 ## Retry Flow
