@@ -26,4 +26,4 @@ const post = async (
 const handler = middy<APIGatewayProxyEventWithBody<Message>, APIGatewayProxyResult>()
   .use(jsonBodyParser())
   .handler(post)
-export { handler }
+export { handler, post }
