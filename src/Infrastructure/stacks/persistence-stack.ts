@@ -30,6 +30,13 @@ class PersistenceStack extends Stack {
       removalPolicy: RemovalPolicy.DESTROY,
     })
 
+    table.addGlobalSecondaryIndex({
+      indexName: 'retryDate-expirationAt-index',
+      partitionKey: { name: 'retryDate', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'expirationAt', type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
+    })
+
     this.exports = {
       tableArn: table.tableArn,
       tableStreamArn: table.tableStreamArn!,
