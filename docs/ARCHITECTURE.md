@@ -89,10 +89,9 @@ graph TB
     %% EventBridge Scheduler
     EB -->|Trigger| Scheduler
 
-    %% SSM Parameter Store
-    PostMsg -->|Read Queue URL| SSM
-    PostRetry -->|Read Queue URL| SSM
-    Auth -->|Read Layer ARN| SSM
+    %% SSM Parameter Store (CDK deploy-time only — values injected as env vars)
+    SSM -.->|MESSAGES_QUEUE_URL env var| PostMsg
+    SSM -.->|MESSAGES_QUEUE_URL env var| PostRetry
 
     %% Styling
     classDef aws fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#232F3E
@@ -170,8 +169,8 @@ sequenceDiagram
 | **POST /retry** | API Gateway | Queues retry messages to SQS |
 | **GET /retry** | API Gateway | (Stub) Retrieve retry history |
 | **SQS Consumer** | SQS Queue | Persists messages to DynamoDB |
-| **Scheduler** | EventBridge | (Future) Retry failed messages every 12 days |
-| **Delete Trigger** | DynamoDB Stream | (Future) Handle exponential backoff cleanup |
+| **Scheduler** | EventBridge | Sweeps expired messages from DynamoDB every 12 days |
+| **Delete Trigger** | DynamoDB Stream | Re-queues messages to SQS on REMOVE events for exponential backoff |
 
 ### Business Logic Layer
 
