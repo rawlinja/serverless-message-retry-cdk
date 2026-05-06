@@ -105,17 +105,19 @@ describe('POST /retry', () => {
 })
 
 describe('GET /messages', () => {
-  it('returns 200', async () => {
+  it('returns 501 for the planned read endpoint', async () => {
     const result = await messagesGet(makeGetEvent())
 
-    expect(result.statusCode).toBe(200)
+    expect(result.statusCode).toBe(501)
+    expect(result.body).toContain('read model pending')
   })
 })
 
 describe('GET /retry', () => {
-  it('returns 200', async () => {
+  it('returns 501 for the planned retry history endpoint', async () => {
     const result = await retryGet(makeGetEvent())
 
-    expect(result.statusCode).toBe(200)
+    expect(result.statusCode).toBe(501)
+    expect(result.body).toContain('retry history query pending')
   })
 })

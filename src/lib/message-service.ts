@@ -46,16 +46,15 @@ class MessageService {
       logger.error('Missing required fields', { message })
       throw new Error('Missing required fields')
     }
-    const delayMs = Math.pow(2, retryCount) * BASE_DELAY_MS
-    const expirationAt = new Date(Date.now() + delayMs).toISOString()
-    const retryDate = expirationAt.split('T')[0]
-
-    const failedMessage: Message = { ...message, retryCount, expirationAt, retryDate }
+    const failedMessage = this.buildRetryMessage(message, retryCount, {
+      createdAt: message.createdAt,
+      preserveSchedule: false,
+    })
 
     logger.info('Storing failed message for retry', {
       email: message.email,
-      retryCount,
-      expirationAt,
+      retryCount: failedMessage.retryCount,
+      expirationAt: failedMessage.expirationAt,
     })
     try {
       await repository.create(failedMessage)
@@ -71,19 +70,10 @@ class MessageService {
       throw new Error('Missing required fields')
     }
 
-    const createdAt = message.createdAt ?? new Date().toISOString()
-    const retryCount = message.retryCount ?? 0
-    const expirationAt =
-      message.expirationAt ?? new Date(Date.now() + Math.pow(2, retryCount) * BASE_DELAY_MS).toISOString()
-    const retryDate = message.retryDate ?? expirationAt.split('T')[0]
-
-    const retryMessage: Message = {
-      ...message,
-      createdAt,
-      retryCount,
-      expirationAt,
-      retryDate,
-    }
+    const retryMessage = this.buildRetryMessage(message, message.retryCount ?? 0, {
+      createdAt: message.createdAt ?? new Date().toISOString(),
+      preserveSchedule: true,
+    })
 
     logger.info('Seeding retry message in database', {
       email: retryMessage.email,
@@ -97,6 +87,34 @@ class MessageService {
     } catch (error) {
       logger.error('Error seeding retry message', { error })
       throw error
+    }
+  }
+
+  private buildRetryMessage(
+    message: Message,
+    retryCount: number,
+    options: {
+      createdAt: string
+      preserveSchedule: boolean
+    },
+  ): Message {
+    const computedExpirationAt = new Date(
+      Date.now() + Math.pow(2, retryCount) * BASE_DELAY_MS,
+    ).toISOString()
+    const expirationAt =
+      options.preserveSchedule && message.expirationAt
+        ? message.expirationAt
+        : computedExpirationAt
+
+    return {
+      ...message,
+      createdAt: options.createdAt,
+      retryCount,
+      expirationAt,
+      retryDate:
+        options.preserveSchedule && message.retryDate
+          ? message.retryDate
+          : expirationAt.split('T')[0],
     }
   }
 

@@ -31,6 +31,7 @@ export class BaseStack extends Stack {
         queueArn,
         queueUrlParameterArn,
       },
+      tableArn,
       resources: [
         {
           rootName: 'MessagesApi',

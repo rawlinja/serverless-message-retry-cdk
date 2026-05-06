@@ -1,4 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
+import { StatusCodes } from 'http-status-codes'
 import middy from '/opt/nodejs/node_modules/@middy/core'
 import jsonBodyParser from '/opt/nodejs/node_modules/@middy/http-json-body-parser'
 
@@ -8,8 +9,8 @@ const get = async (
 ): Promise<APIGatewayProxyResult> => {
   return {
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: 'Not yet implemented' }),
-    statusCode: 200,
+    body: JSON.stringify({ message: 'Not implemented: retry history query pending' }),
+    statusCode: StatusCodes.NOT_IMPLEMENTED,
   }
 }
 

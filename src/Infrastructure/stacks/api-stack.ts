@@ -47,12 +47,14 @@ type QueueConfiguration = {
 type ApiStackProps = StackProps & {
   resources: Resource[]
   queue: QueueConfiguration
+  tableArn: string
   environment?: LambdaEnvironment
 }
 
 type BuildProps = {
   resources: Resource[]
   queueArn: string
+  tableArn: string
 }
 
 type CreateRestApiProps = BuildProps & {
@@ -64,8 +66,8 @@ class ApiStack extends Stack {
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id, props)
 
-    const { resources, queue } = props
-    this.build({ resources, queueArn: queue.queueArn })
+    const { resources, queue, tableArn } = props
+    this.build({ resources, queueArn: queue.queueArn, tableArn })
   }
 
   build(props: BuildProps) {
@@ -76,6 +78,7 @@ class ApiStack extends Stack {
     this.createRestApi({
       resources: props.resources,
       queueArn: props.queueArn,
+      tableArn: props.tableArn,
       authorizer,
       middyLayer: middyLayer,
     })
@@ -120,10 +123,6 @@ class ApiStack extends Stack {
   createRestApi(props: CreateRestApiProps) {
     const messageQueueUrl = this.getMessageQueueUrl()
 
-    const sendMessagePolicyStatement = this.createSendMessagePolicyStatement(
-      props.queueArn,
-    )
-
     const api = new apigateway.LambdaRestApi(this, API_ROOT, {
       handler: this.buildLambdaFunction(DEFAULT_REST_API_HANDLER, {}),
       proxy: false,
@@ -139,12 +138,10 @@ class ApiStack extends Stack {
       resource.routes.forEach((route) => {
         const lambda = this.buildLambdaFunction(
           route.handler,
-          {
-            MESSAGES_QUEUE_URL: messageQueueUrl,
-          },
+          this.createRouteEnvironment(route.handler, messageQueueUrl),
           props.middyLayer,
         )
-        lambda.addToRolePolicy(sendMessagePolicyStatement)
+        this.addRoutePermissions(lambda, route.handler, props.queueArn, props.tableArn)
 
         messagesResource?.addMethod(
           route.method,
@@ -155,6 +152,32 @@ class ApiStack extends Stack {
         )
       })
     })
+  }
+
+  createRouteEnvironment(
+    handler: string,
+    messageQueueUrl: string,
+  ): LambdaEnvironment {
+    if (handler === 'index.messagesPost') {
+      return { MESSAGES_QUEUE_URL: messageQueueUrl }
+    }
+
+    return {}
+  }
+
+  addRoutePermissions(
+    routeLambda: lambda.Function,
+    handler: string,
+    queueArn: string,
+    tableArn: string,
+  ) {
+    if (handler === 'index.messagesPost') {
+      routeLambda.addToRolePolicy(this.createSendMessagePolicyStatement(queueArn))
+    }
+
+    if (handler === 'index.retryPost') {
+      routeLambda.addToRolePolicy(this.createPutItemPolicyStatement(tableArn))
+    }
   }
 
   getMessageQueueUrl(): string {
@@ -173,6 +196,14 @@ class ApiStack extends Stack {
       effect: iam.Effect.ALLOW,
       actions: ['sqs:SendMessage'],
       resources: [queueArn],
+    })
+  }
+
+  createPutItemPolicyStatement(tableArn: string): iam.PolicyStatement {
+    return new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['dynamodb:PutItem'],
+      resources: [tableArn],
     })
   }
 
