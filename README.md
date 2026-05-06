@@ -2,6 +2,8 @@
 
 A distributed message processing system with retry capabilities built on AWS serverless architecture using CDK.
 
+This repo is a work in progress. It focuses on the core message and retry pipeline: authenticated ingestion, SQS-based processing, DynamoDB persistence, and scheduled retry replay.
+
 ## Architecture
 
 The system uses a multi-stack CDK pattern with the following components:
@@ -20,7 +22,17 @@ Client → API Gateway → Lambda → SQS → Lambda → DynamoDB
 
 ## Status
 
-The API pipeline, SQS processing, DynamoDB persistence, and JWT authentication are fully implemented. The exponential backoff retry flow (stream trigger + scheduler) is complete. GET endpoints for `/messages` and `/retry` are stubbed.
+Implemented:
+- JWT-protected API Gateway routes
+- `POST /messages` async ingestion path
+- `POST /retry` manual retry seeding path
+- SQS consumer persistence flow
+- Exponential backoff retry pipeline using DynamoDB, EventBridge, and DynamoDB Streams
+
+Planned:
+- `GET /messages` read model and pagination
+- `GET /retry` retry-history query endpoint
+- Additional deployment hardening and operator-facing ergonomics
 
 ## Prerequisites
 
@@ -64,9 +76,29 @@ All endpoints require JWT Bearer token authorization.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/messages` | Queue a new message |
-| GET | `/messages` | Retrieve messages (stub) |
+| GET | `/messages` | Planned read endpoint, currently returns `501 Not Implemented` |
 | POST | `/retry` | Seed a retry record in DynamoDB |
-| GET | `/retry` | Retrieve retry history (stub) |
+| GET | `/retry` | Planned retry-history endpoint, currently returns `501 Not Implemented` |
+
+## Example Requests
+
+`POST /messages`
+
+```bash
+curl -X POST https://YOUR_API_ID.execute-api.us-east-1.amazonaws.com/prod/messages \
+  -H "Authorization: Bearer YOUR_JWT" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"john.doe@example.com","firstName":"John","lastName":"Doe","data":"message payload"}'
+```
+
+`POST /retry`
+
+```bash
+curl -X POST https://YOUR_API_ID.execute-api.us-east-1.amazonaws.com/prod/retry \
+  -H "Authorization: Bearer YOUR_JWT" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"john.doe@example.com","retryCount":2,"expirationAt":"2026-05-05T10:04:00.000Z","retryDate":"2026-05-05","data":"retry payload"}'
+```
 
 ## Retry Flow
 
@@ -80,6 +112,21 @@ Failed messages are retried with exponential backoff:
 **Backoff intervals:** 1m → 2m → 4m → 8m → 16m → dead letter
 
 **GSI design note:** `retryDate` (YYYY-MM-DD) is the GSI partition key rather than `status` to avoid a hot partition. Writes distribute across calendar days. The scheduler queries a configurable lookback window (default 30 days) to catch overdue items.
+
+## Why This Architecture
+
+- SQS keeps the API path fast and helps absorb traffic spikes instead of tying request latency to downstream writes.
+- DynamoDB stores both primary message records and retry metadata in one place.
+- The `retryDate-expirationAt` GSI avoids hot partitions and lets the scheduler query expired retries without scanning the full table.
+- The scheduler explicitly deletes expired retry records so retry timing is deterministic instead of depending on DynamoDB TTL behavior.
+- The DynamoDB `REMOVE` trigger is a practical way to requeue the full expired record back onto SQS.
+
+## Current Limitations
+
+- `GET /messages` and `GET /retry` are explicitly unimplemented and return `501`.
+- `POST /retry` is currently an operator/testing path for seeding retry records, not an end-user workflow.
+- IAM and endpoint responsibilities are still being tightened as the retry API contract evolves.
+- The repo is optimized for demonstrating architecture and flow, not for one-command local emulation.
 
 ## Project Structure
 
