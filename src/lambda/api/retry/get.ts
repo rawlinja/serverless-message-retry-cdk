@@ -4,11 +4,11 @@ import jsonBodyParser from '/opt/nodejs/node_modules/@middy/http-json-body-parse
 
 // TODO: query DynamoDB GSI (retryDate-expirationAt) by email and return retry attempt history
 const get = async (
-  event: APIGatewayProxyEvent,
+  _event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> => {
   return {
     headers: { 'Content-Type': 'application/json' },
-    body: `You've hit the GET endpoint ${JSON.stringify(event)}\n`,
+    body: JSON.stringify({ message: 'Not yet implemented' }),
     statusCode: 200,
   }
 }
