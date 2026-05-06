@@ -66,12 +66,14 @@ export class BaseStack extends Stack {
     new SchedulerStack(scope, 'SchedulerStack', {
       handler: 'index.scheduler',
       duration: Duration.days(12),
+      tableArn,
     })
 
     new ExponentialBackoffStack(scope, 'ExponentialBackoffStack', {
       handler: 'index.delete',
       tableArn,
       tableStreamArn,
+      queueArn,
     })
   }
 }
