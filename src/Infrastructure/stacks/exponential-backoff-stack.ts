@@ -11,7 +11,7 @@ import { StringParameter } from 'aws-cdk-lib/aws-ssm'
 
 const LAMBDA_STREAMS_PATH = '../../lambda/triggers/index.ts'
 const MESSAGES_TABLE_IMPORT_ID = 'MessagesTableImport'
-const MESSAGES_QUEUE_URL_PARAMETER_ID = 'TriggerMessagesQueueUrlParameter'
+const MESSAGES_QUEUE_URL_PARAMETER_ID = 'MessagesQueueUrlParameter'
 
 type ExponentialBackoffStackProps = StackProps & {
   handler: string
