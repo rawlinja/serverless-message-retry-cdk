@@ -1,5 +1,7 @@
 import { mockClient } from 'aws-sdk-client-mock'
+import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb'
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs'
+import { unmarshall } from '@aws-sdk/util-dynamodb'
 import { APIGatewayProxyEvent } from 'aws-lambda'
 import { post as messagesPost } from '../../lambda/api/messages/post'
 import { get as messagesGet } from '../../lambda/api/messages/get'
@@ -8,8 +10,12 @@ import { get as retryGet } from '../../lambda/api/retry/get'
 import type { APIGatewayProxyEventWithBody, Message } from '@lib/types'
 
 const sqsMock = mockClient(SQSClient)
+const ddbMock = mockClient(DynamoDBClient)
 
-beforeEach(() => sqsMock.reset())
+beforeEach(() => {
+  sqsMock.reset()
+  ddbMock.reset()
+})
 
 const makePostEvent = (body: Message): APIGatewayProxyEventWithBody<Message> => ({
   body,
@@ -68,16 +74,29 @@ describe('POST /messages', () => {
 })
 
 describe('POST /retry', () => {
-  it('returns 200 when message queued successfully', async () => {
-    sqsMock.on(SendMessageCommand).resolves({})
+  it('returns 200 when retry message is seeded successfully', async () => {
+    ddbMock.on(PutItemCommand).resolves({})
 
-    const result = await retryPost(makePostEvent({ email: 'retry@example.com' }))
+    const result = await retryPost(
+      makePostEvent({
+        email: 'retry@example.com',
+        retryCount: 2,
+        expirationAt: '2026-05-05T10:04:00.000Z',
+      })
+    )
 
     expect(result.statusCode).toBe(200)
+
+    const call = ddbMock.commandCalls(PutItemCommand)[0]
+    const stored = unmarshall(call.args[0].input.Item!)
+    expect(stored.email).toBe('retry@example.com')
+    expect(stored.retryCount).toBe(2)
+    expect(stored.expirationAt).toBe('2026-05-05T10:04:00.000Z')
+    expect(stored.retryDate).toBe('2026-05-05')
   })
 
-  it('returns 400 when SQS send fails', async () => {
-    sqsMock.on(SendMessageCommand).rejects(new Error('SQS unavailable'))
+  it('returns 400 when DynamoDB write fails', async () => {
+    ddbMock.on(PutItemCommand).rejects(new Error('DynamoDB unavailable'))
 
     const result = await retryPost(makePostEvent({ email: 'retry@example.com' }))
 

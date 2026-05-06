@@ -65,19 +65,41 @@ class MessageService {
     }
   }
 
-  async retryMessage(message: Message) {
-    if (!message.email || !message.createdAt) {
+  async seedRetryMessage(message: Message) {
+    if (!message.email) {
       logger.error('Missing required fields', { message })
       throw new Error('Missing required fields')
     }
+
+    const createdAt = message.createdAt ?? new Date().toISOString()
+    const retryCount = message.retryCount ?? 0
+    const expirationAt =
+      message.expirationAt ?? new Date(Date.now() + Math.pow(2, retryCount) * BASE_DELAY_MS).toISOString()
+    const retryDate = message.retryDate ?? expirationAt.split('T')[0]
+
+    const retryMessage: Message = {
+      ...message,
+      createdAt,
+      retryCount,
+      expirationAt,
+      retryDate,
+    }
+
+    logger.info('Seeding retry message in database', {
+      email: retryMessage.email,
+      retryCount: retryMessage.retryCount,
+      expirationAt: retryMessage.expirationAt,
+      retryDate: retryMessage.retryDate,
+    })
+
     try {
-      logger.info('Retrying message storage to database', { message })
-      await repository.create(message)
+      await repository.create(retryMessage)
     } catch (error) {
-      logger.error('Error retrying message storage to database', { error })
+      logger.error('Error seeding retry message', { error })
       throw error
     }
   }
+
 }
 
 export { MessageService }

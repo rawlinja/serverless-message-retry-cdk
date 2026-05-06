@@ -96,3 +96,51 @@ describe('failMessage', () => {
     await expect(service.failMessage({ email: '' }, 0)).rejects.toThrow('Missing required fields')
   })
 })
+
+describe('seedRetryMessage', () => {
+  it('preserves provided retry GSI fields', async () => {
+    ddbMock.on(PutItemCommand).resolves({})
+    const service = new MessageService()
+
+    await service.seedRetryMessage({
+      email: 'retry@example.com',
+      createdAt: '2026-05-05T10:00:00.000Z',
+      retryCount: 2,
+      expirationAt: '2026-05-05T10:04:00.000Z',
+      retryDate: '2026-05-05',
+    })
+
+    const call = ddbMock.commandCalls(PutItemCommand)[0]
+    const stored = unmarshall(call.args[0].input.Item!)
+
+    expect(stored.retryCount).toBe(2)
+    expect(stored.expirationAt).toBe('2026-05-05T10:04:00.000Z')
+    expect(stored.retryDate).toBe('2026-05-05')
+  })
+
+  it('fills missing retry metadata with defaults', async () => {
+    ddbMock.on(PutItemCommand).resolves({})
+    const service = new MessageService()
+
+    await service.seedRetryMessage({
+      email: 'retry@example.com',
+    })
+
+    const call = ddbMock.commandCalls(PutItemCommand)[0]
+    const stored = unmarshall(call.args[0].input.Item!)
+
+    expect(stored.createdAt).toBe(FIXED_NOW.toISOString())
+    expect(stored.retryCount).toBe(0)
+    expect(stored.expirationAt).toBe(
+      new Date(FIXED_NOW.getTime() + BASE_DELAY_MS).toISOString()
+    )
+    expect(stored.retryDate).toBe('2026-05-05')
+  })
+
+  it('throws if email is missing', async () => {
+    const service = new MessageService()
+    await expect(service.seedRetryMessage({ email: '' })).rejects.toThrow(
+      'Missing required fields'
+    )
+  })
+})
