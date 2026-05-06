@@ -91,7 +91,6 @@ graph TB
 
     %% SSM Parameter Store (CDK deploy-time only — values injected as env vars)
     SSM -.->|MESSAGES_QUEUE_URL env var| PostMsg
-    SSM -.->|MESSAGES_QUEUE_URL env var| PostRetry
 
     %% Styling
     classDef aws fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#232F3E
@@ -146,6 +145,34 @@ sequenceDiagram
     MS-->>SC: Complete
 ```
 
+### 2. Manual Retry Seeding Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant AG as API Gateway
+    participant A as JWT Authorizer
+    participant RH as POST /retry Handler
+    participant MS as MessageService
+    participant MR as MessageRepository
+    participant DB as DynamoDB
+
+    C->>AG: POST /retry + JWT token
+    AG->>A: Authorize request
+    A->>A: Verify JWT (HS256)
+    A-->>AG: Return allow policy
+    AG->>RH: Invoke handler
+    RH->>MS: seedRetryMessage(message)
+    MS->>MR: save retry record
+    MR->>MR: Generate keys<br/>PK: EMAIL::email<br/>SK: CREATEDAT::timestamp
+    MR->>DB: PutItem
+    DB-->>MR: Success
+    MR-->>MS: Stored retry record
+    MS-->>RH: Success
+    RH-->>AG: 200 OK
+    AG-->>C: Response
+```
+
 ## Component Responsibilities
 
 ### Infrastructure Stacks
@@ -165,9 +192,9 @@ sequenceDiagram
 |----------|---------|---------|
 | **JWT Authorizer** | API Gateway | Validates JWT tokens (HS256) from Secrets Manager |
 | **POST /messages** | API Gateway | Queues new messages to SQS |
-| **GET /messages** | API Gateway | (Stub) Retrieve messages |
+| **GET /messages** | API Gateway | Returns `501 Not Implemented` until the read model is built |
 | **POST /retry** | API Gateway | Seeds retry records in DynamoDB for the retry pipeline |
-| **GET /retry** | API Gateway | (Stub) Retrieve retry history |
+| **GET /retry** | API Gateway | Returns `501 Not Implemented` until retry-history queries are built |
 | **SQS Consumer** | SQS Queue | Persists messages to DynamoDB |
 | **Scheduler** | EventBridge | Sweeps expired messages from DynamoDB every 12 days |
 | **Delete Trigger** | DynamoDB Stream | Re-queues messages to SQS on REMOVE events for exponential backoff |
@@ -180,9 +207,9 @@ sequenceDiagram
 | **MessageRepository** | Repository Pattern | Type-safe DynamoDB data access for messages |
 | **DynamoDBRepository** | Generic Repository | Abstract DynamoDB CRUD operations |
 
-## Cross-Stack Communication
+## Configuration and Shared References
 
-All stacks communicate via **SSM Parameter Store**:
+Stacks and runtime components share configuration through **SSM Parameter Store** and **AWS Secrets Manager**:
 
 ```
 /prod/messages/queue-url          → SQS Queue URL (MessagingStack → ApiStack)

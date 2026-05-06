@@ -18,6 +18,8 @@ The system uses a multi-stack CDK pattern with the following components:
 Client → API Gateway → Lambda → SQS → Lambda → DynamoDB
                                               ↓
                               EventBridge ← DynamoDB Streams
+
+POST /retry → API Gateway → Lambda → DynamoDB
 ```
 
 ## Status
@@ -77,7 +79,7 @@ All endpoints require JWT Bearer token authorization.
 |--------|----------|-------------|
 | POST | `/messages` | Queue a new message |
 | GET | `/messages` | Planned read endpoint, currently returns `501 Not Implemented` |
-| POST | `/retry` | Seed a retry record in DynamoDB |
+| POST | `/retry` | Seed a retry record in DynamoDB for operator/testing use |
 | GET | `/retry` | Planned retry-history endpoint, currently returns `501 Not Implemented` |
 
 ## Example Requests
@@ -91,6 +93,12 @@ curl -X POST https://YOUR_API_ID.execute-api.us-east-1.amazonaws.com/prod/messag
   -d '{"email":"john.doe@example.com","firstName":"John","lastName":"Doe","data":"message payload"}'
 ```
 
+Example response:
+
+```text
+Message sent {"email":"john.doe@example.com","firstName":"John","lastName":"Doe","data":"message payload"}
+```
+
 `POST /retry`
 
 ```bash
@@ -98,6 +106,12 @@ curl -X POST https://YOUR_API_ID.execute-api.us-east-1.amazonaws.com/prod/retry 
   -H "Authorization: Bearer YOUR_JWT" \
   -H "Content-Type: application/json" \
   -d '{"email":"john.doe@example.com","retryCount":2,"expirationAt":"2026-05-05T10:04:00.000Z","retryDate":"2026-05-05","data":"retry payload"}'
+```
+
+Example response:
+
+```text
+Retry message seeded {"email":"john.doe@example.com","retryCount":2,"expirationAt":"2026-05-05T10:04:00.000Z","retryDate":"2026-05-05","data":"retry payload"}
 ```
 
 ## Retry Flow
@@ -125,7 +139,6 @@ Failed messages are retried with exponential backoff:
 
 - `GET /messages` and `GET /retry` are explicitly unimplemented and return `501`.
 - `POST /retry` is currently an operator/testing path for seeding retry records, not an end-user workflow.
-- IAM and endpoint responsibilities are still being tightened as the retry API contract evolves.
 - The repo is optimized for demonstrating architecture and flow, not for one-command local emulation.
 
 ## Project Structure
