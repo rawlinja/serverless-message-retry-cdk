@@ -47,12 +47,35 @@ Before deploying, configure these AWS resources:
      --secret-string '{"messagesJwtSecret":"your-secret-here"}'
    ```
 
-2. **Middy Lambda Layer** (SSM Parameter)
+2. **Middy Lambda Layer** — build, publish, then register the ARN in SSM
+
+   The stack expects a pre-published Lambda layer containing Middy v6. It is not
+   created automatically; you must publish it to your AWS account first:
+
+   ```bash
+   # Build the layer bundle
+   mkdir -p middy-layer/nodejs && cd middy-layer/nodejs
+   npm init -y
+   npm install @middy/core@^6.3.2 @middy/http-json-body-parser@^6.3.2
+   cd ..
+   zip -r middy-layer.zip nodejs/
+
+   # Publish to AWS (note: ARM64 + Node 22 to match Lambda config)
+   aws lambda publish-layer-version \
+     --layer-name middy \
+     --description "Middy middleware v6" \
+     --zip-file fileb://middy-layer.zip \
+     --compatible-runtimes nodejs22.x \
+     --compatible-architectures arm64
+   ```
+
+   Copy the `LayerVersionArn` from the command output, then register it in SSM:
+
    ```bash
    aws ssm put-parameter \
      --name /prod/middy-lambda-layer-arn \
      --type String \
-     --value "arn:aws:lambda:us-east-1:ACCOUNT_ID:layer:middy:VERSION"
+     --value "<LayerVersionArn from above>"
    ```
 
 ## Getting Started
