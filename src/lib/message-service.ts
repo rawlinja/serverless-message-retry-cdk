@@ -9,7 +9,7 @@ const sqsClient = new SQSClient({ region: 'us-east-1' })
 const repository = new MessageRepository('Messages')
 
 export const MAX_RETRIES = 5
-const BASE_DELAY_MS = 60_000
+const BASE_DELAY_MS = 3_600_000
 
 class MessageService {
   async queueMessage(message: Message) {

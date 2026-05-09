@@ -7,7 +7,7 @@ import { MessageService } from '@lib/message-service'
 const ddbMock = mockClient(DynamoDBClient)
 mockClient(SQSClient)
 
-const BASE_DELAY_MS = 60_000
+const BASE_DELAY_MS = 3_600_000
 const FIXED_NOW = new Date('2026-05-05T12:00:00.000Z')
 
 beforeEach(() => {

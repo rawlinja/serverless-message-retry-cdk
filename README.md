@@ -141,12 +141,12 @@ Retry message seeded {"email":"john.doe@example.com","retryCount":2,"expirationA
 
 Failed messages are retried with exponential backoff:
 
-1. SQS consumer catches a processing failure → stores message in DynamoDB with `expirationAt = now + (2^retryCount × 60s)` and a `retryDate` GSI key
+1. SQS consumer catches a processing failure → stores message in DynamoDB with `expirationAt = now + (2^retryCount × 1h)` and a `retryDate` GSI key
 2. EventBridge scheduler queries the `retryDate-expirationAt-index` GSI for expired items and explicitly deletes them (deterministic — not TTL-based)
 3. DynamoDB Stream fires a `REMOVE` event → trigger Lambda extracts the full message from `OldImage` and re-queues to SQS with `retryCount + 1`
 4. Cycle repeats until `retryCount` reaches `MAX_RETRIES` (5), at which point the message is logged as permanently failed
 
-**Backoff intervals:** 1m → 2m → 4m → 8m → 16m → dead letter
+**Backoff intervals:** 1h → 2h → 4h → 8h → 16h → dead letter
 
 **GSI design note:** `retryDate` (YYYY-MM-DD) is the GSI partition key rather than `status` to avoid a hot partition. Writes distribute across calendar days. The scheduler queries a configurable lookback window (default 30 days) to catch overdue items.
 
