@@ -148,7 +148,7 @@ Failed messages are retried with exponential backoff:
 
 **Backoff intervals:** 1h → 2h → 4h → 8h → 16h → dead letter
 
-**GSI design note:** `retryDate` (YYYY-MM-DD) is the GSI partition key rather than `status` to avoid a hot partition. Writes distribute across calendar days. The scheduler queries a configurable lookback window (default 30 days) to catch overdue items.
+**GSI design note:** `retryDate` (YYYY-MM-DD) is the GSI partition key rather than `status` to avoid a hot partition. Writes distribute across calendar days. The scheduler runs every hour — matching the base backoff unit — and queries a configurable lookback window (default 2 days) to catch any overdue items missed across date boundaries.
 
 ## Why This Architecture
 

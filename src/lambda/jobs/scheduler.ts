@@ -5,7 +5,7 @@ const logger = new Logger({ serviceName: 'scheduler' })
 const repository = new MessageRepository('Messages')
 
 const handler = async (): Promise<void> => {
-  const lookbackDays = parseInt(process.env.LOOKBACK_DAYS ?? '30', 10)
+  const lookbackDays = parseInt(process.env.LOOKBACK_DAYS ?? '2', 10)
   const now = new Date().toISOString()
   let totalDeleted = 0
 

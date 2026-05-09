@@ -66,7 +66,7 @@ export class BaseStack extends Stack {
 
     new SchedulerStack(scope, 'SchedulerStack', {
       handler: 'index.scheduler',
-      duration: Duration.days(12),
+      duration: Duration.hours(1),
       tableArn,
     })
 
