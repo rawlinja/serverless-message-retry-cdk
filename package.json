@@ -49,7 +49,7 @@
     "synth": "cdk synth",
     "deploy": "cdk deploy",
     "destroy": "cdk destroy",
-    "lint": "eslint . --ext .ts",
+    "lint": "eslint .",
     "start": "cdk deploy",
     "test": "jest",
     "test:watch": "jest --watch"
