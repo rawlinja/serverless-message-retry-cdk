@@ -1,8 +1,8 @@
-{"$schema": "https://json.schemastore.org/tsconfig",
-  "_version": "22.0.0",
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
     "lib": [
-      "es2024",
+      "es2022",
       "ESNext.Array",
       "ESNext.Collection",
       "ESNext.Iterator"
@@ -16,15 +16,16 @@
     "rootDir": "./src",
     "outDir": "./dist",
     "forceConsistentCasingInFileNames": true,
-    "isolatedModules": false,
     "typeRoots": [
       "./node_modules/@types"
     ],
-    "baseUrl": ".",
+    "types": ["jest", "node"],
     "paths": {
-      "/opt/nodejs/node_modules/*": ["node_modules/*"],
-      "@lib/*": ["src/lib/*"],
-      "@stacks/*": ["src/Infrastructure/stacks/*"]
+      "/opt/nodejs/node_modules/@middy/core": ["./node_modules/@middy/core"],
+      "/opt/nodejs/node_modules/@middy/http-json-body-parser": ["./node_modules/@middy/http-json-body-parser"],
+      "/opt/nodejs/node_modules/*": ["./node_modules/*"],
+      "@lib/*": ["./src/lib/*"],
+      "@stacks/*": ["./src/Infrastructure/stacks/*"]
     }
   },
   "exclude": ["node_modules", "cdk.out", "dist/**/*"]

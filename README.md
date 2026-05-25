@@ -143,19 +143,19 @@ Failed messages are retried with exponential backoff:
 
 1. SQS consumer catches a processing failure → stores message in DynamoDB with `expirationAt = now + (2^retryCount × 1h)` and a `retryDate` GSI key
 2. EventBridge scheduler queries the `retryDate-expirationAt-index` GSI for expired items and explicitly deletes them (deterministic — not TTL-based)
-3. DynamoDB Stream fires a `REMOVE` event → trigger Lambda extracts the full message from `OldImage` and re-queues to SQS with `retryCount + 1`
-4. Cycle repeats until `retryCount` reaches `MAX_RETRIES` (5), at which point the message is logged as permanently failed
+3. DynamoDB Stream fires a `REMOVE` event which triggers a Lambda that extracts the full message from `OldImage` and re-queues to SQS with `retryCount + 1`
+4. This cycle repeats until `retryCount` reaches `MAX_RETRIES` (5), at which point the message is logged as permanently failed.
 
 **Backoff intervals:** 1h → 2h → 4h → 8h → 16h → dead letter
 
-**GSI design note:** `retryDate` (YYYY-MM-DD) is the GSI partition key rather than `status` to avoid a hot partition. Writes distribute across calendar days. The scheduler runs every hour — matching the base backoff unit — and queries a configurable lookback window (default 2 days) to catch any overdue items missed across date boundaries.
+**GSI design note:** `retryDate` (YYYY-MM-DD) is the GSI partition key rather than `status` to avoid a hot partition. Writes distribute across calendar days. The scheduler runs every hour, matching the base backoff unit and queries a configurable lookback window (default 2 days) to catch any overdue items missed across date boundaries.
 
 ## Why This Architecture
 
 - SQS keeps the API path fast and helps absorb traffic spikes instead of tying request latency to downstream writes.
 - DynamoDB stores both primary message records and retry metadata in one place.
-- The `retryDate-expirationAt` GSI avoids hot partitions and lets the scheduler query expired retries without scanning the full table.
-- The scheduler explicitly deletes expired retry records so retry timing is deterministic instead of depending on DynamoDB TTL behavior.
+- The `retryDate-expirationAt` GSI avoids hot partitions, and lets the scheduler scan for expired retries without scanning the full table.
+- The scheduler explicitly deletes expired retry records so that the retry timing is deterministic and does not depend on DynamoDB TTL behavior.
 - The DynamoDB `REMOVE` trigger is a practical way to requeue the full expired record back onto SQS.
 
 ## Current Limitations
