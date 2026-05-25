@@ -1,4 +1,4 @@
-import { Capture, Match, Template } from 'aws-cdk-lib/assertions'
+import { Template } from 'aws-cdk-lib/assertions'
 import { PersistenceStack } from '@stacks/index'
 import { App } from 'aws-cdk-lib'
 
