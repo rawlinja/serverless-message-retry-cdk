@@ -9,6 +9,7 @@
     "@aws-sdk/client-sqs": "^3.1053.0",
     "@aws-sdk/client-ssm": "^3.1053.0",
     "@aws-sdk/util-dynamodb": "^3.996.2",
+    "@js-temporal/polyfill": "^0.5.1",
     "@middy/core": "^7.6.5",
     "@middy/http-json-body-parser": "^7.6.5",
     "aws-cdk-lib": "^2.257.0",

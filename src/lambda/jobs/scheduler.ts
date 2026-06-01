@@ -1,4 +1,5 @@
 import { Logger } from '@aws-lambda-powertools/logger'
+import { Temporal } from '@js-temporal/polyfill'
 import { MessageRepository } from '@lib/message-repository'
 
 const logger = new Logger({ serviceName: 'scheduler' })
@@ -6,13 +7,11 @@ const repository = new MessageRepository('Messages')
 
 const handler = async (): Promise<void> => {
   const lookbackDays = parseInt(process.env.LOOKBACK_DAYS ?? '2', 10)
-  const now = new Date().toISOString()
+  const now = Temporal.Now.instant().toString({ smallestUnit: 'millisecond' })
   let totalDeleted = 0
 
   for (let i = 0; i < lookbackDays; i++) {
-    const date = new Date()
-    date.setDate(date.getDate() - i)
-    const retryDate = date.toISOString().split('T')[0]
+    const retryDate = Temporal.Now.plainDateISO().subtract({ days: i }).toString()
 
     try {
       const expired = await repository.queryExpired(retryDate, now)

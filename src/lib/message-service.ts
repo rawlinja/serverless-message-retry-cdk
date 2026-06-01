@@ -1,5 +1,6 @@
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs'
 import { Logger } from '@aws-lambda-powertools/logger'
+import { Temporal } from '@js-temporal/polyfill'
 import { MessageRepository } from './message-repository'
 import type { Message } from './types'
 
@@ -67,7 +68,7 @@ class MessageService {
     }
 
     const retryMessage = this.buildRetryMessage(message, message.retryCount ?? 0, {
-      createdAt: message.createdAt ?? new Date().toISOString(),
+      createdAt: message.createdAt ?? Temporal.Now.instant().toString({ smallestUnit: 'millisecond' }),
       preserveSchedule: true,
     })
 
@@ -89,7 +90,7 @@ class MessageService {
   private buildQueueMessage(message: Message): Message {
     return {
       ...message,
-      createdAt: new Date().toISOString(),
+      createdAt: Temporal.Now.instant().toString({ smallestUnit: 'millisecond' }),
     }
   }
 
@@ -101,9 +102,9 @@ class MessageService {
       preserveSchedule: boolean
     },
   ): Message {
-    const computedExpirationAt = new Date(
-      Date.now() + Math.pow(2, retryCount) * BASE_DELAY_MS,
-    ).toISOString()
+    const computedExpirationAt = Temporal.Now.instant()
+      .add({ milliseconds: Math.pow(2, retryCount) * BASE_DELAY_MS })
+      .toString({ smallestUnit: 'millisecond' })
     const expirationAt =
       options.preserveSchedule && message.expirationAt ? message.expirationAt : computedExpirationAt
 
@@ -115,7 +116,7 @@ class MessageService {
       retryDate:
         options.preserveSchedule && message.retryDate
           ? message.retryDate
-          : expirationAt.split('T')[0],
+          : Temporal.Instant.from(expirationAt).toZonedDateTimeISO('UTC').toPlainDate().toString(),
     }
   }
 }
