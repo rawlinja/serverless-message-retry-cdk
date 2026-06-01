@@ -105,9 +105,7 @@ class MessageService {
       Date.now() + Math.pow(2, retryCount) * BASE_DELAY_MS,
     ).toISOString()
     const expirationAt =
-      options.preserveSchedule && message.expirationAt
-        ? message.expirationAt
-        : computedExpirationAt
+      options.preserveSchedule && message.expirationAt ? message.expirationAt : computedExpirationAt
 
     return {
       ...message,
@@ -120,7 +118,6 @@ class MessageService {
           : expirationAt.split('T')[0],
     }
   }
-
 }
 
 export { MessageService }

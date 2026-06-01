@@ -34,7 +34,10 @@ class MessageRepository extends DynamoDBRepository<MessageRecord> {
       logger.info('Item created successfully', { item })
     } catch (error) {
       if (error instanceof ConditionalCheckFailedException) {
-        logger.info('Duplicate message detected, skipping', { pk: this.getPrimaryKey(item), sk: this.getSortKey(item) })
+        logger.info('Duplicate message detected, skipping', {
+          pk: this.getPrimaryKey(item),
+          sk: this.getSortKey(item),
+        })
         return
       }
       logger.error('Error creating item in DynamoDB', { error })

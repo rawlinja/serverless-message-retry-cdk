@@ -82,7 +82,7 @@ describe('POST /retry', () => {
         email: 'retry@example.com',
         retryCount: 2,
         expirationAt: '2026-05-05T10:04:00.000Z',
-      })
+      }),
     )
 
     expect(result.statusCode).toBe(200)

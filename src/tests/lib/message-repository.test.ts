@@ -37,7 +37,7 @@ describe('queryExpired', () => {
     const call = ddbMock.commandCalls(QueryCommand)[0]
     expect(call.args[0].input.IndexName).toBe('retryDate-expirationAt-index')
     expect(call.args[0].input.KeyConditionExpression).toBe(
-      'retryDate = :retryDate AND expirationAt <= :now'
+      'retryDate = :retryDate AND expirationAt <= :now',
     )
   })
 
@@ -60,18 +60,21 @@ describe('create', () => {
 
     const call = ddbMock.commandCalls(PutItemCommand)[0]
     expect(call.args[0].input.ConditionExpression).toBe(
-      'attribute_not_exists(pk) AND attribute_not_exists(sk)'
+      'attribute_not_exists(pk) AND attribute_not_exists(sk)',
     )
   })
 
   it('resolves without throwing when the item already exists', async () => {
     ddbMock.on(PutItemCommand).rejects(
-      new ConditionalCheckFailedException({ message: 'The conditional request failed', $metadata: {} })
+      new ConditionalCheckFailedException({
+        message: 'The conditional request failed',
+        $metadata: {},
+      }),
     )
     const repo = new MessageRepository('Messages')
 
     await expect(
-      repo.create({ email: 'test@example.com', createdAt: '2026-05-05T10:00:00.000Z' })
+      repo.create({ email: 'test@example.com', createdAt: '2026-05-05T10:00:00.000Z' }),
     ).resolves.toBeUndefined()
   })
 
@@ -80,7 +83,7 @@ describe('create', () => {
     const repo = new MessageRepository('Messages')
 
     await expect(
-      repo.create({ email: 'test@example.com', createdAt: '2026-05-05T10:00:00.000Z' })
+      repo.create({ email: 'test@example.com', createdAt: '2026-05-05T10:00:00.000Z' }),
     ).rejects.toThrow('DynamoDB unavailable')
   })
 })
@@ -90,10 +93,7 @@ describe('deleteMessage', () => {
     ddbMock.on(DeleteItemCommand).resolves({})
     const repo = new MessageRepository('Messages')
 
-    await repo.deleteMessage(
-      'EMAIL::test@example.com',
-      'CREATEDAT::2026-05-05T10:00:00.000Z'
-    )
+    await repo.deleteMessage('EMAIL::test@example.com', 'CREATEDAT::2026-05-05T10:00:00.000Z')
 
     const call = ddbMock.commandCalls(DeleteItemCommand)[0]
     expect(call.args[0].input.Key!['pk']).toEqual({ S: 'EMAIL::test@example.com' })

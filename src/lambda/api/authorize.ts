@@ -1,11 +1,5 @@
-import {
-  APIGatewayTokenAuthorizerEvent,
-  APIGatewayAuthorizerResult,
-} from 'aws-lambda'
-import {
-  SecretsManagerClient,
-  GetSecretValueCommand,
-} from '@aws-sdk/client-secrets-manager'
+import { APIGatewayTokenAuthorizerEvent, APIGatewayAuthorizerResult } from 'aws-lambda'
+import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager'
 import { Logger } from '@aws-lambda-powertools/logger'
 import * as jwt from 'jsonwebtoken'
 

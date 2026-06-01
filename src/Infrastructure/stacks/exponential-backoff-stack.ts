@@ -21,11 +21,7 @@ type ExponentialBackoffStackProps = StackProps & {
 }
 
 class ExponentialBackoffStack extends Stack {
-  constructor(
-    scope: Construct,
-    id: string,
-    props: ExponentialBackoffStackProps,
-  ) {
+  constructor(scope: Construct, id: string, props: ExponentialBackoffStackProps) {
     super(scope, id, props)
     this.build({
       handler: props.handler,
@@ -82,10 +78,7 @@ class ExponentialBackoffStack extends Stack {
     )
   }
 
-  buildLambdaFunction(
-    name: string,
-    environment: { [key: string]: string },
-  ): lambda.Function {
+  buildLambdaFunction(name: string, environment: { [key: string]: string }): lambda.Function {
     return new NodejsFunction(this, lambdaFunctionIdentifier(name), {
       architecture: lambda.Architecture.ARM_64,
       runtime: lambda.Runtime.NODEJS_24_X,

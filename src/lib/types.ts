@@ -20,6 +20,6 @@ type MessageRecord = Message & {
 
 type APIGatewayProxyEventWithBody<T> = Omit<APIGatewayProxyEvent, 'body'> & {
   body: T
-}                                        
-       
+}
+
 export type { Message, MessageRecord, APIGatewayProxyEventWithBody }

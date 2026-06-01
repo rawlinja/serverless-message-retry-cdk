@@ -7,10 +7,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda'
 import { StringParameter } from 'aws-cdk-lib/aws-ssm'
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs'
 import * as Path from 'path'
-import {
-  MESSAGES_QUEUE_URL_PARAMETER_NAME,
-  lambdaFunctionIdentifier,
-} from './base-stack'
+import { MESSAGES_QUEUE_URL_PARAMETER_NAME, lambdaFunctionIdentifier } from './base-stack'
 
 const LAMBDA_API_PATH = '../../lambda/api/index.ts'
 const API_ROOT = 'MessagesApi'
@@ -111,13 +108,9 @@ class ApiStack extends Stack {
       },
     ).stringValue
 
-    return lambda.LayerVersion.fromLayerVersionAttributes(
-      this,
-      LAYER_VERSION_ATTRIBUTES_ID,
-      {
-        layerVersionArn: middyLayerArn,
-      },
-    )
+    return lambda.LayerVersion.fromLayerVersionAttributes(this, LAYER_VERSION_ATTRIBUTES_ID, {
+      layerVersionArn: middyLayerArn,
+    })
   }
 
   createRestApi(props: CreateRestApiProps) {
@@ -143,21 +136,14 @@ class ApiStack extends Stack {
         )
         this.addRoutePermissions(lambda, route.handler, props.queueArn, props.tableArn)
 
-        messagesResource?.addMethod(
-          route.method,
-          new apigateway.LambdaIntegration(lambda),
-          {
-            authorizer: props.authorizer,
-          },
-        )
+        messagesResource?.addMethod(route.method, new apigateway.LambdaIntegration(lambda), {
+          authorizer: props.authorizer,
+        })
       })
     })
   }
 
-  createRouteEnvironment(
-    handler: string,
-    messageQueueUrl: string,
-  ): LambdaEnvironment {
+  createRouteEnvironment(handler: string, messageQueueUrl: string): LambdaEnvironment {
     if (handler === 'index.messagesPost') {
       return { MESSAGES_QUEUE_URL: messageQueueUrl }
     }
@@ -181,14 +167,10 @@ class ApiStack extends Stack {
   }
 
   getMessageQueueUrl(): string {
-    return StringParameter.fromStringParameterAttributes(
-      this,
-      MESSSAGES_QUEUE_URL_PARAMETER_ID,
-      {
-        parameterName: MESSAGES_QUEUE_URL_PARAMETER_NAME,
-        version: 1,
-      },
-    ).stringValue
+    return StringParameter.fromStringParameterAttributes(this, MESSSAGES_QUEUE_URL_PARAMETER_ID, {
+      parameterName: MESSAGES_QUEUE_URL_PARAMETER_NAME,
+      version: 1,
+    }).stringValue
   }
 
   createSendMessagePolicyStatement(queueArn: string): iam.PolicyStatement {

@@ -55,10 +55,7 @@ class SchedulerStack extends Stack {
     rule.addTarget(new targets.LambdaFunction(scheduler))
   }
 
-  buildLambdaFunction(
-    name: string,
-    environment: { [key: string]: string },
-  ): lambda.Function {
+  buildLambdaFunction(name: string, environment: { [key: string]: string }): lambda.Function {
     return new NodejsFunction(this, lambdaFunctionIdentifier(name), {
       architecture: lambda.Architecture.ARM_64,
       runtime: lambda.Runtime.NODEJS_24_X,

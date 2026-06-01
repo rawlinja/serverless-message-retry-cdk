@@ -1,9 +1,5 @@
 import { mockClient } from 'aws-sdk-client-mock'
-import {
-  DynamoDBClient,
-  QueryCommand,
-  DeleteItemCommand,
-} from '@aws-sdk/client-dynamodb'
+import { DynamoDBClient, QueryCommand, DeleteItemCommand } from '@aws-sdk/client-dynamodb'
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
 import { handler } from '../../lambda/jobs/scheduler'
 
@@ -44,8 +40,8 @@ describe('scheduler handler', () => {
 
     expect(ddbMock.commandCalls(QueryCommand)).toHaveLength(3)
     const calls = ddbMock.commandCalls(QueryCommand)
-    const dates = calls.map((call) =>
-      unmarshall(call.args[0].input.ExpressionAttributeValues!)[':retryDate']
+    const dates = calls.map(
+      (call) => unmarshall(call.args[0].input.ExpressionAttributeValues!)[':retryDate'],
     )
     expect(dates).toEqual(['2026-05-05', '2026-05-04', '2026-05-03'])
   })

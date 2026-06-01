@@ -63,9 +63,7 @@ describe('failMessage', () => {
     expect(stored.pk).toBe('EMAIL::test@example.com')
     expect(stored.sk).toBe('CREATEDAT::2026-05-05T10:00:00.000Z')
     expect(stored.retryCount).toBe(0)
-    expect(stored.expirationAt).toBe(
-      new Date(FIXED_NOW.getTime() + BASE_DELAY_MS).toISOString()
-    )
+    expect(stored.expirationAt).toBe(new Date(FIXED_NOW.getTime() + BASE_DELAY_MS).toISOString())
     expect(stored.retryDate).toBe('2026-05-05')
   })
 
@@ -80,7 +78,7 @@ describe('failMessage', () => {
 
     expect(stored.retryCount).toBe(1)
     expect(stored.expirationAt).toBe(
-      new Date(FIXED_NOW.getTime() + 2 * BASE_DELAY_MS).toISOString()
+      new Date(FIXED_NOW.getTime() + 2 * BASE_DELAY_MS).toISOString(),
     )
   })
 
@@ -95,7 +93,7 @@ describe('failMessage', () => {
 
     expect(stored.retryCount).toBe(3)
     expect(stored.expirationAt).toBe(
-      new Date(FIXED_NOW.getTime() + 8 * BASE_DELAY_MS).toISOString()
+      new Date(FIXED_NOW.getTime() + 8 * BASE_DELAY_MS).toISOString(),
     )
   })
 
@@ -117,7 +115,6 @@ describe('failMessage', () => {
 
     await expect(service.failMessage(baseMessage, 0)).rejects.toThrow('DynamoDB error')
   })
-
 })
 
 describe('seedRetryMessage', () => {
@@ -154,16 +151,12 @@ describe('seedRetryMessage', () => {
 
     expect(stored.createdAt).toBe(FIXED_NOW.toISOString())
     expect(stored.retryCount).toBe(0)
-    expect(stored.expirationAt).toBe(
-      new Date(FIXED_NOW.getTime() + BASE_DELAY_MS).toISOString()
-    )
+    expect(stored.expirationAt).toBe(new Date(FIXED_NOW.getTime() + BASE_DELAY_MS).toISOString())
     expect(stored.retryDate).toBe('2026-05-05')
   })
 
   it('throws if email is missing', async () => {
     const service = new MessageService()
-    await expect(service.seedRetryMessage({ email: '' })).rejects.toThrow(
-      'Missing required fields'
-    )
+    await expect(service.seedRetryMessage({ email: '' })).rejects.toThrow('Missing required fields')
   })
 })

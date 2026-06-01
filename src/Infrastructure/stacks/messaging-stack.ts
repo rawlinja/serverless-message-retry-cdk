@@ -7,10 +7,7 @@ import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources'
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs'
 import * as iam from 'aws-cdk-lib/aws-iam'
 import * as Path from 'path'
-import {
-  MESSAGES_QUEUE_URL_PARAMETER_NAME,
-  lambdaFunctionIdentifier,
-} from './base-stack'
+import { MESSAGES_QUEUE_URL_PARAMETER_NAME, lambdaFunctionIdentifier } from './base-stack'
 
 const LAMBDA_SQS_PATH = '../../lambda/sqs/index.ts'
 const MESSAGES_QUEUE_ID = 'MessagesQueue'
@@ -87,12 +84,7 @@ class MessagingStack extends Stack {
     })
   }
 
-  buildStringParameter({
-    id,
-    parameterName,
-    description,
-    stringValue,
-  }: StringParameterProps) {
+  buildStringParameter({ id, parameterName, description, stringValue }: StringParameterProps) {
     return new StringParameter(this, id, {
       parameterName,
       description,

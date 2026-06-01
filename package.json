@@ -51,6 +51,7 @@
     "deploy": "cdk deploy",
     "destroy": "cdk destroy",
     "lint": "eslint .",
+    "format": "prettier --write .",
     "start": "cdk deploy",
     "test": "jest",
     "test:watch": "jest --watch"
