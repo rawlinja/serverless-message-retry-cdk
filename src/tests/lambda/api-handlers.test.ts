@@ -56,20 +56,20 @@ describe('POST /messages', () => {
     expect(result.statusCode).toBe(200)
   })
 
-  it('returns 400 when SQS send fails', async () => {
+  it('returns 500 when SQS send fails', async () => {
     sqsMock.on(SendMessageCommand).rejects(new Error('SQS unavailable'))
 
     const result = await messagesPost(makePostEvent({ email: 'test@example.com' }))
 
-    expect(result.statusCode).toBe(400)
+    expect(result.statusCode).toBe(500)
   })
 
-  it('includes the message email in the success response', async () => {
+  it('returns queued confirmation on success', async () => {
     sqsMock.on(SendMessageCommand).resolves({})
 
     const result = await messagesPost(makePostEvent({ email: 'sent@example.com' }))
 
-    expect(result.body).toContain('sent@example.com')
+    expect(result.body).toBe('Message queued')
   })
 })
 

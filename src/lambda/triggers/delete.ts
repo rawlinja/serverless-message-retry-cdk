@@ -29,6 +29,7 @@ const handler = async (event: DynamoDBStreamEvent): Promise<void> => {
         logger.warn('Message exceeded max retries, dead lettered', {
           email: message.email,
           retryCount,
+          maxRetries: MAX_RETRIES,
         })
         continue
       }

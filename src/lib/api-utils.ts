@@ -15,4 +15,12 @@ const returnError = (body: string) => {
   }
 }
 
-export { returnSuccess, returnError }
+const returnServerError = (body: string) => {
+  return {
+    headers: { 'Content-Type': 'application/json' },
+    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+    body,
+  }
+}
+
+export { returnSuccess, returnError, returnServerError }

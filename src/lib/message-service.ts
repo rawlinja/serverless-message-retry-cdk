@@ -15,27 +15,17 @@ const BASE_DELAY_MS = 3_600_000
 class MessageService {
   async queueMessage(message: Message) {
     const payload = JSON.stringify(this.buildQueueMessage(message))
-    try {
-      const input = new SendMessageCommand({
-        QueueUrl: queueUrl,
-        MessageBody: payload,
-      })
-      logger.info('Sending message to SQS queue', { payload })
-      await sqsClient.send(input)
-    } catch (error) {
-      logger.error('Error sending message to SQS queue', { error })
-      throw error
-    }
+    const input = new SendMessageCommand({
+      QueueUrl: queueUrl,
+      MessageBody: payload,
+    })
+    logger.info('Queuing message', { email: message.email })
+    await sqsClient.send(input)
+    logger.info('Message successfully queued', { email: message.email })
   }
 
   async registerMessage(message: Message) {
-    try {
-      logger.info('Storing message to database', { message })
-      await repository.create(message)
-    } catch (error) {
-      logger.error('Error storing message to database', { error })
-      throw error
-    }
+    await repository.create(message)
   }
 
   async failMessage(message: Message, retryCount: number) {
@@ -53,12 +43,7 @@ class MessageService {
       retryCount: failedMessage.retryCount,
       expirationAt: failedMessage.expirationAt,
     })
-    try {
-      await repository.create(failedMessage)
-    } catch (error) {
-      logger.error('Error storing failed message', { error })
-      throw error
-    }
+    await repository.create(failedMessage)
   }
 
   async seedRetryMessage(message: Message) {
@@ -79,12 +64,7 @@ class MessageService {
       retryDate: retryMessage.retryDate,
     })
 
-    try {
-      await repository.create(retryMessage)
-    } catch (error) {
-      logger.error('Error seeding retry message', { error })
-      throw error
-    }
+    await repository.create(retryMessage)
   }
 
   private buildQueueMessage(message: Message): Message {
