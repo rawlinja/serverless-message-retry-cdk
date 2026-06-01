@@ -32,7 +32,7 @@ graph TB
     end
 
     subgraph "Scheduler Stack"
-        EB[EventBridge Rule<br/>Every 12 days]
+        EB[EventBridge Rule<br/>Every hour]
         Scheduler[Scheduler<br/>Lambda]
     end
 
@@ -75,22 +75,27 @@ graph TB
     SQS -->|Batch: 5 messages| SQSConsumer
 
     %% Consumer Lambda to MessageService
-    SQSConsumer -->|storeMessage| MS
+    SQSConsumer -->|registerMessage| MS
 
     %% MessageService to Repository
     MS -->|persist| MR
     MR -->|extends| DR
-    DR -->|PutItem/Query| DDB
+    DR -->|PutItem/Query/Delete| DDB
 
     %% DynamoDB Streams
     DDB -->|Stream Events<br/>REMOVE| Stream
     Stream -->|Batch: 5 events| DeleteTrigger
 
+    %% Delete Trigger re-queues eligible messages
+    DeleteTrigger -->|queueMessage<br/>retryCount + 1| SQS
+
     %% EventBridge Scheduler
     EB -->|Trigger| Scheduler
+    Scheduler -->|queryExpired + deleteMessage| DDB
 
     %% SSM Parameter Store (CDK deploy-time only — values injected as env vars)
     SSM -.->|MESSAGES_QUEUE_URL env var| PostMsg
+    SSM -.->|MESSAGES_QUEUE_URL env var| DeleteTrigger
 
     %% Styling
     classDef aws fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#232F3E
@@ -136,8 +141,8 @@ sequenceDiagram
 
     Note over SQ,SC: Async processing
     SQ->>SC: Trigger (batch: 5)
-    SC->>MS: storeMessage(message)
-    MS->>MR: save(message)
+    SC->>MS: registerMessage(message)
+    MS->>MR: create(message)
     MR->>MR: Generate keys<br/>PK: EMAIL::email<br/>SK: CREATEDAT::timestamp
     MR->>DB: PutItem
     DB-->>MR: Success
@@ -163,7 +168,8 @@ sequenceDiagram
     A-->>AG: Return allow policy
     AG->>RH: Invoke handler
     RH->>MS: seedRetryMessage(message)
-    MS->>MR: save retry record
+    MS->>MS: Compute expirationAt<br/>2^retryCount × 1hr
+    MS->>MR: create(retryMessage)
     MR->>MR: Generate keys<br/>PK: EMAIL::email<br/>SK: CREATEDAT::timestamp
     MR->>DB: PutItem
     DB-->>MR: Success
@@ -171,6 +177,49 @@ sequenceDiagram
     MS-->>RH: Success
     RH-->>AG: 200 OK
     AG-->>C: Response
+```
+
+### 3. Scheduled Retry Cycle (Exponential Backoff)
+
+```mermaid
+sequenceDiagram
+    participant EB as EventBridge
+    participant SC as Scheduler Lambda
+    participant DB as DynamoDB
+    participant ST as DynamoDB Stream
+    participant DT as Delete Trigger Lambda
+    participant SQ as SQS Queue
+    participant CN as SQS Consumer
+    participant MS as MessageService
+
+    EB->>SC: Trigger (every hour)
+    SC->>SC: Build retryDate range<br/>(LOOKBACK_DAYS window, default 2)
+    loop For each date in lookback window
+        SC->>DB: queryExpired(retryDate, now)
+        DB-->>SC: Expired messages
+        loop For each expired message
+            SC->>DB: deleteMessage(pk, sk)
+        end
+    end
+
+    Note over DB,DT: Stream delivers REMOVE events
+    DB->>ST: REMOVE events (batch: 5)
+    ST->>DT: Invoke trigger
+
+    loop For each REMOVE record
+        DT->>DT: Check retryCount vs MAX_RETRIES (5)
+        alt retryCount >= 5
+            DT->>DT: Dead letter — log and skip
+        else retryCount < 5
+            DT->>MS: queueMessage({ ...message, retryCount: retryCount + 1 })
+            MS->>SQ: SendMessage
+        end
+    end
+
+    Note over SQ,CN: Async processing
+    SQ->>CN: Trigger (batch: 5)
+    CN->>MS: registerMessage(message)
+    MS->>DB: PutItem (incremented retryCount)
 ```
 
 ## Component Responsibilities
@@ -188,31 +237,31 @@ sequenceDiagram
 
 ### Lambda Functions
 
-| Function           | Trigger         | Purpose                                                             |
-| ------------------ | --------------- | ------------------------------------------------------------------- |
-| **JWT Authorizer** | API Gateway     | Validates JWT tokens (HS256) from Secrets Manager                   |
-| **POST /messages** | API Gateway     | Queues new messages to SQS                                          |
-| **GET /messages**  | API Gateway     | Returns `501 Not Implemented` until the read model is built         |
-| **POST /retry**    | API Gateway     | Seeds retry records in DynamoDB for the retry pipeline              |
-| **GET /retry**     | API Gateway     | Returns `501 Not Implemented` until retry-history queries are built |
-| **SQS Consumer**   | SQS Queue       | Persists messages to DynamoDB                                       |
-| **Scheduler**      | EventBridge     | Sweeps expired messages from DynamoDB every 12 days                 |
-| **Delete Trigger** | DynamoDB Stream | Re-queues messages to SQS on REMOVE events for exponential backoff  |
+| Function           | Trigger         | Purpose                                                                                                             |
+| ------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **JWT Authorizer** | API Gateway     | Validates JWT tokens (HS256) from Secrets Manager                                                                   |
+| **POST /messages** | API Gateway     | Queues new messages to SQS                                                                                          |
+| **GET /messages**  | API Gateway     | Returns `501 Not Implemented` until the read model is built                                                         |
+| **POST /retry**    | API Gateway     | Seeds retry records directly in DynamoDB with computed `expirationAt` and `retryDate`                               |
+| **GET /retry**     | API Gateway     | Returns `501 Not Implemented` until retry-history queries are built                                                 |
+| **SQS Consumer**   | SQS Queue       | Persists messages to DynamoDB via `registerMessage`                                                                 |
+| **Scheduler**      | EventBridge     | Queries messages by `retryDate` within a lookback window (`LOOKBACK_DAYS` env var, set to 30); deletes expired ones |
+| **Delete Trigger** | DynamoDB Stream | On REMOVE events, re-queues messages to SQS with `retryCount + 1`; dead-letters at `MAX_RETRIES = 5`               |
 
 ### Business Logic Layer
 
-| Component              | Pattern            | Purpose                                           |
-| ---------------------- | ------------------ | ------------------------------------------------- |
-| **MessageService**     | Service Layer      | Central business logic hub for message operations |
-| **MessageRepository**  | Repository Pattern | Type-safe DynamoDB data access for messages       |
-| **DynamoDBRepository** | Generic Repository | Abstract DynamoDB CRUD operations                 |
+| Component              | Pattern            | Purpose                                                                           |
+| ---------------------- | ------------------ | --------------------------------------------------------------------------------- |
+| **MessageService**     | Service Layer      | Central hub: `queueMessage`, `registerMessage`, `seedRetryMessage`, `failMessage` |
+| **MessageRepository**  | Repository Pattern | Type-safe DynamoDB data access; `create`, `queryExpired`, `deleteMessage`         |
+| **DynamoDBRepository** | Generic Repository | Abstract DynamoDB CRUD operations                                                 |
 
 ## Configuration and Shared References
 
 Stacks and runtime components share configuration through **SSM Parameter Store** and **AWS Secrets Manager**:
 
 ```
-/prod/messages/queue-url          → SQS Queue URL (MessagingStack → ApiStack)
+/prod/messages/queue-url          → SQS Queue URL (MessagingStack → ApiStack, ExponentialBackoffStack)
 /prod/messages/jwt-secret         → Secrets Manager ARN (ApiStack internal)
 /prod/middy-lambda-layer-arn      → Middy Layer ARN (Shared across API handlers)
 ```
@@ -224,13 +273,43 @@ Stacks and runtime components share configuration through **SSM Parameter Store*
 3. **Secrets**: JWT secret stored in AWS Secrets Manager (not SSM)
 4. **Network**: All resources in us-east-1, no VPC (serverless only)
 
+## DynamoDB Schema
+
+**Table:** Messages  
+**Primary Key:** `pk` (String) — Format: `EMAIL::${email}`  
+**Sort Key:** `sk` (String) — Format: `CREATEDAT::${timestamp}`  
+**Stream:** `NEW_AND_OLD_IMAGES` enabled
+
+### Item Shape
+
+```typescript
+type Message = {
+  firstName?: string
+  lastName?: string
+  email: string         // Required
+  phone?: string
+  createdAt?: string    // ISO timestamp; auto-set by MessageService
+  data?: string
+  retryCount?: number   // Incremented on each retry cycle
+  expirationAt?: string // ISO timestamp; record deleted when this passes
+  retryDate?: string    // YYYY-MM-DD; used by Scheduler to query candidates
+}
+
+// Stored record also includes repository-generated fields:
+type MessageRecord = Message & {
+  pk: string  // EMAIL::${email}
+  sk: string  // CREATEDAT::${timestamp}
+  id: string  // 6-char hex (Nano ID)
+}
+```
+
 ## Technology Choices
 
 | Technology                | Description                               |
 | ------------------------- | ----------------------------------------- |
 | Node.js 22.x              | LTS runtime, TypeScript execution via tsx |
 | ARM64 (Graviton2)         | Lambda compute architecture               |
-| Yarn 4.5.3                | Package manager                           |
+| Yarn 4.15.0               | Package manager                           |
 | AWS CDK 2.x               | Infrastructure as code                    |
 | API Gateway REST API (v1) | HTTP API with token authorizer support    |
 | Middy                     | Middleware framework for Lambda handlers  |
