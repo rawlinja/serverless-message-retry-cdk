@@ -5,13 +5,13 @@
     "rootDir": "./src",
     "outDir": "./dist",
     "forceConsistentCasingInFileNames": true,
-    "typeRoots": [
-      "./node_modules/@types"
-    ],
+    "typeRoots": ["./node_modules/@types"],
     "types": ["jest", "node"],
     "paths": {
       "/opt/nodejs/node_modules/@middy/core": ["./node_modules/@middy/core"],
-      "/opt/nodejs/node_modules/@middy/http-json-body-parser": ["./node_modules/@middy/http-json-body-parser"],
+      "/opt/nodejs/node_modules/@middy/http-json-body-parser": [
+        "./node_modules/@middy/http-json-body-parser"
+      ],
       "/opt/nodejs/node_modules/*": ["./node_modules/*"],
       "@lib/*": ["./src/lib/*"],
       "@stacks/*": ["./src/Infrastructure/stacks/*"]

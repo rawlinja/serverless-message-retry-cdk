@@ -25,6 +25,7 @@ POST /retry → API Gateway → Lambda → DynamoDB
 ## Status
 
 Implemented:
+
 - JWT-protected API Gateway routes
 - `POST /messages` async ingestion path
 - `POST /retry` manual retry seeding path
@@ -32,6 +33,7 @@ Implemented:
 - Exponential backoff retry pipeline using DynamoDB, EventBridge, and DynamoDB Streams
 
 Planned:
+
 - `GET /messages` read model and pagination
 - `GET /retry` retry-history query endpoint
 - Additional deployment hardening and operator-facing ergonomics
@@ -41,6 +43,7 @@ Planned:
 Before deploying, configure these AWS resources:
 
 1. **JWT Secret** (Secrets Manager)
+
    ```bash
    aws secretsmanager create-secret \
      --name /prod/messages/jwt-secret \
@@ -98,12 +101,12 @@ yarn deploy
 
 All endpoints require JWT Bearer token authorization.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/messages` | Queue a new message |
-| GET | `/messages` | Planned read endpoint, currently returns `501 Not Implemented` |
-| POST | `/retry` | Seed a retry record in DynamoDB for operator/testing use |
-| GET | `/retry` | Planned retry-history endpoint, currently returns `501 Not Implemented` |
+| Method | Endpoint    | Description                                                             |
+| ------ | ----------- | ----------------------------------------------------------------------- |
+| POST   | `/messages` | Queue a new message                                                     |
+| GET    | `/messages` | Planned read endpoint, currently returns `501 Not Implemented`          |
+| POST   | `/retry`    | Seed a retry record in DynamoDB for operator/testing use                |
+| GET    | `/retry`    | Planned retry-history endpoint, currently returns `501 Not Implemented` |
 
 ## Example Requests
 

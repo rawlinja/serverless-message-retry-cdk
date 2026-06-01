@@ -177,35 +177,35 @@ sequenceDiagram
 
 ### Infrastructure Stacks
 
-| Stack | Components | Responsibility |
-|-------|-----------|----------------|
-| **BaseStack** | Orchestrator | Coordinates all child stacks, manages dependencies |
-| **PersistenceStack** | DynamoDB Table | Message storage with streams enabled |
-| **MessagingStack** | SQS Queue + Consumer | Async message processing |
-| **ApiStack** | API Gateway + Handlers + Authorizer | REST API endpoints with JWT auth |
-| **SchedulerStack** | EventBridge + Lambda | Scheduled retry jobs |
-| **ExponentialBackoffStack** | DynamoDB Stream Trigger | React to message deletions |
+| Stack                       | Components                          | Responsibility                                     |
+| --------------------------- | ----------------------------------- | -------------------------------------------------- |
+| **BaseStack**               | Orchestrator                        | Coordinates all child stacks, manages dependencies |
+| **PersistenceStack**        | DynamoDB Table                      | Message storage with streams enabled               |
+| **MessagingStack**          | SQS Queue + Consumer                | Async message processing                           |
+| **ApiStack**                | API Gateway + Handlers + Authorizer | REST API endpoints with JWT auth                   |
+| **SchedulerStack**          | EventBridge + Lambda                | Scheduled retry jobs                               |
+| **ExponentialBackoffStack** | DynamoDB Stream Trigger             | React to message deletions                         |
 
 ### Lambda Functions
 
-| Function | Trigger | Purpose |
-|----------|---------|---------|
-| **JWT Authorizer** | API Gateway | Validates JWT tokens (HS256) from Secrets Manager |
-| **POST /messages** | API Gateway | Queues new messages to SQS |
-| **GET /messages** | API Gateway | Returns `501 Not Implemented` until the read model is built |
-| **POST /retry** | API Gateway | Seeds retry records in DynamoDB for the retry pipeline |
-| **GET /retry** | API Gateway | Returns `501 Not Implemented` until retry-history queries are built |
-| **SQS Consumer** | SQS Queue | Persists messages to DynamoDB |
-| **Scheduler** | EventBridge | Sweeps expired messages from DynamoDB every 12 days |
-| **Delete Trigger** | DynamoDB Stream | Re-queues messages to SQS on REMOVE events for exponential backoff |
+| Function           | Trigger         | Purpose                                                             |
+| ------------------ | --------------- | ------------------------------------------------------------------- |
+| **JWT Authorizer** | API Gateway     | Validates JWT tokens (HS256) from Secrets Manager                   |
+| **POST /messages** | API Gateway     | Queues new messages to SQS                                          |
+| **GET /messages**  | API Gateway     | Returns `501 Not Implemented` until the read model is built         |
+| **POST /retry**    | API Gateway     | Seeds retry records in DynamoDB for the retry pipeline              |
+| **GET /retry**     | API Gateway     | Returns `501 Not Implemented` until retry-history queries are built |
+| **SQS Consumer**   | SQS Queue       | Persists messages to DynamoDB                                       |
+| **Scheduler**      | EventBridge     | Sweeps expired messages from DynamoDB every 12 days                 |
+| **Delete Trigger** | DynamoDB Stream | Re-queues messages to SQS on REMOVE events for exponential backoff  |
 
 ### Business Logic Layer
 
-| Component | Pattern | Purpose |
-|-----------|---------|---------|
-| **MessageService** | Service Layer | Central business logic hub for message operations |
-| **MessageRepository** | Repository Pattern | Type-safe DynamoDB data access for messages |
-| **DynamoDBRepository** | Generic Repository | Abstract DynamoDB CRUD operations |
+| Component              | Pattern            | Purpose                                           |
+| ---------------------- | ------------------ | ------------------------------------------------- |
+| **MessageService**     | Service Layer      | Central business logic hub for message operations |
+| **MessageRepository**  | Repository Pattern | Type-safe DynamoDB data access for messages       |
+| **DynamoDBRepository** | Generic Repository | Abstract DynamoDB CRUD operations                 |
 
 ## Configuration and Shared References
 
@@ -226,12 +226,12 @@ Stacks and runtime components share configuration through **SSM Parameter Store*
 
 ## Technology Choices
 
-| Technology | Description |
-|------------|-------------|
-| Node.js 22.x | LTS runtime, TypeScript execution via tsx |
-| ARM64 (Graviton2) | Lambda compute architecture |
-| Yarn 4.5.3 | Package manager |
-| AWS CDK 2.x | Infrastructure as code |
-| API Gateway REST API (v1) | HTTP API with token authorizer support |
-| Middy | Middleware framework for Lambda handlers |
-| Jest + ts-jest | Testing framework |
+| Technology                | Description                               |
+| ------------------------- | ----------------------------------------- |
+| Node.js 22.x              | LTS runtime, TypeScript execution via tsx |
+| ARM64 (Graviton2)         | Lambda compute architecture               |
+| Yarn 4.5.3                | Package manager                           |
+| AWS CDK 2.x               | Infrastructure as code                    |
+| API Gateway REST API (v1) | HTTP API with token authorizer support    |
+| Middy                     | Middleware framework for Lambda handlers  |
+| Jest + ts-jest            | Testing framework                         |
