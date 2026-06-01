@@ -48,46 +48,6 @@ describe('sqs handler', () => {
     expect(stored.expirationAt).toBeUndefined()
   })
 
-  it('stores failed message with retry fields when storeMessage throws', async () => {
-    ddbMock
-      .on(PutItemCommand)
-      .rejectsOnce(new Error('DynamoDB unavailable'))
-      .resolves({})
-
-    await handler(makeEvent([makeRecord({ email: 'fail@example.com', createdAt: FIXED_NOW.toISOString() })]))
-
-    const calls = ddbMock.commandCalls(PutItemCommand)
-    expect(calls).toHaveLength(2)
-
-    const failStored = unmarshall(calls[1].args[0].input.Item!)
-    expect(failStored.email).toBe('fail@example.com')
-    expect(failStored.retryCount).toBe(0)
-    expect(failStored.expirationAt).toBeDefined()
-    expect(failStored.retryDate).toBeDefined()
-  })
-
-  it('preserves retryCount from message when re-processing a retry', async () => {
-    ddbMock
-      .on(PutItemCommand)
-      .rejectsOnce(new Error('DynamoDB unavailable'))
-      .resolves({})
-
-    const retryMessage = {
-      email: 'retry@example.com',
-      createdAt: '2026-05-05T10:00:00.000Z',
-      retryCount: 2,
-      expirationAt: '2026-05-05T10:04:00.000Z',
-      retryDate: '2026-05-05',
-    }
-
-    await handler(makeEvent([makeRecord(retryMessage)]))
-
-    const calls = ddbMock.commandCalls(PutItemCommand)
-    const failStored = unmarshall(calls[1].args[0].input.Item!)
-
-    expect(failStored.retryCount).toBe(2)
-  })
-
   it('skips invalid JSON records and processes valid ones', async () => {
     ddbMock.on(PutItemCommand).resolves({})
 
@@ -104,20 +64,11 @@ describe('sqs handler', () => {
     expect(stored.email).toBe('ok@example.com')
   })
 
-  it('processes remaining messages after one fails', async () => {
-    ddbMock
-      .on(PutItemCommand)
-      .rejectsOnce(new Error('DynamoDB unavailable'))
-      .resolves({})
+  it('throws when a record fails so SQS redelivers the batch', async () => {
+    ddbMock.on(PutItemCommand).rejectsOnce(new Error('DynamoDB unavailable'))
 
-    await handler(
-      makeEvent([
-        makeRecord({ email: 'fail@example.com', createdAt: FIXED_NOW.toISOString() }),
-        makeRecord({ email: 'ok@example.com', createdAt: FIXED_NOW.toISOString() }),
-      ])
-    )
-
-    const calls = ddbMock.commandCalls(PutItemCommand)
-    expect(calls).toHaveLength(3)
+    await expect(
+      handler(makeEvent([makeRecord({ email: 'fail@example.com', createdAt: FIXED_NOW.toISOString() })]))
+    ).rejects.toThrow('DynamoDB unavailable')
   })
 })
