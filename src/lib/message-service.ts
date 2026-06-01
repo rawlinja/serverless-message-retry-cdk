@@ -13,7 +13,7 @@ const BASE_DELAY_MS = 3_600_000
 
 class MessageService {
   async queueMessage(message: Message) {
-    const payload = JSON.stringify(message)
+    const payload = JSON.stringify(this.buildQueueMessage(message))
     try {
       const input = new SendMessageCommand({
         QueueUrl: queueUrl,
@@ -87,6 +87,13 @@ class MessageService {
     } catch (error) {
       logger.error('Error seeding retry message', { error })
       throw error
+    }
+  }
+
+  private buildQueueMessage(message: Message): Message {
+    return {
+      ...message,
+      createdAt: new Date().toISOString(),
     }
   }
 

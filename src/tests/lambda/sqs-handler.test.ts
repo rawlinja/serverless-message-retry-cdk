@@ -37,7 +37,7 @@ describe('sqs handler', () => {
   it('stores message without retry fields on success', async () => {
     ddbMock.on(PutItemCommand).resolves({})
 
-    await handler(makeEvent([makeRecord({ email: 'test@example.com' })]))
+    await handler(makeEvent([makeRecord({ email: 'test@example.com', createdAt: FIXED_NOW.toISOString() })]))
 
     const calls = ddbMock.commandCalls(PutItemCommand)
     expect(calls).toHaveLength(1)
@@ -54,7 +54,7 @@ describe('sqs handler', () => {
       .rejectsOnce(new Error('DynamoDB unavailable'))
       .resolves({})
 
-    await handler(makeEvent([makeRecord({ email: 'fail@example.com' })]))
+    await handler(makeEvent([makeRecord({ email: 'fail@example.com', createdAt: FIXED_NOW.toISOString() })]))
 
     const calls = ddbMock.commandCalls(PutItemCommand)
     expect(calls).toHaveLength(2)
@@ -96,7 +96,7 @@ describe('sqs handler', () => {
       body: 'not-valid-json',
     }
 
-    await handler(makeEvent([badRecord, makeRecord({ email: 'ok@example.com' })]))
+    await handler(makeEvent([badRecord, makeRecord({ email: 'ok@example.com', createdAt: FIXED_NOW.toISOString() })]))
 
     const calls = ddbMock.commandCalls(PutItemCommand)
     expect(calls).toHaveLength(1)
@@ -112,8 +112,8 @@ describe('sqs handler', () => {
 
     await handler(
       makeEvent([
-        makeRecord({ email: 'fail@example.com' }),
-        makeRecord({ email: 'ok@example.com' }),
+        makeRecord({ email: 'fail@example.com', createdAt: FIXED_NOW.toISOString() }),
+        makeRecord({ email: 'ok@example.com', createdAt: FIXED_NOW.toISOString() }),
       ])
     )
 

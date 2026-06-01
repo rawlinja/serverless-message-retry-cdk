@@ -1,8 +1,10 @@
 import { mockClient } from 'aws-sdk-client-mock'
 import {
   DynamoDBClient,
+  PutItemCommand,
   QueryCommand,
   DeleteItemCommand,
+  ConditionalCheckFailedException,
 } from '@aws-sdk/client-dynamodb'
 import { marshall } from '@aws-sdk/util-dynamodb'
 import { MessageRepository } from '@lib/message-repository'
@@ -46,6 +48,40 @@ describe('queryExpired', () => {
     const results = await repo.queryExpired('2026-05-05', '2026-05-05T12:00:00.000Z')
 
     expect(results).toHaveLength(0)
+  })
+})
+
+describe('create', () => {
+  it('sends PutItemCommand with idempotency condition expression', async () => {
+    ddbMock.on(PutItemCommand).resolves({})
+    const repo = new MessageRepository('Messages')
+
+    await repo.create({ email: 'test@example.com', createdAt: '2026-05-05T10:00:00.000Z' })
+
+    const call = ddbMock.commandCalls(PutItemCommand)[0]
+    expect(call.args[0].input.ConditionExpression).toBe(
+      'attribute_not_exists(pk) AND attribute_not_exists(sk)'
+    )
+  })
+
+  it('resolves without throwing when the item already exists', async () => {
+    ddbMock.on(PutItemCommand).rejects(
+      new ConditionalCheckFailedException({ message: 'The conditional request failed', $metadata: {} })
+    )
+    const repo = new MessageRepository('Messages')
+
+    await expect(
+      repo.create({ email: 'test@example.com', createdAt: '2026-05-05T10:00:00.000Z' })
+    ).resolves.toBeUndefined()
+  })
+
+  it('rethrows non-duplicate DynamoDB errors', async () => {
+    ddbMock.on(PutItemCommand).rejects(new Error('DynamoDB unavailable'))
+    const repo = new MessageRepository('Messages')
+
+    await expect(
+      repo.create({ email: 'test@example.com', createdAt: '2026-05-05T10:00:00.000Z' })
+    ).rejects.toThrow('DynamoDB unavailable')
   })
 })
 

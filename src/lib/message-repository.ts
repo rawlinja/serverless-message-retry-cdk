@@ -1,3 +1,4 @@
+import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb'
 import { Logger } from '@aws-lambda-powertools/logger'
 import { DynamoDBRepository } from './dynamodb-repository'
 import { generateId } from './nanoid-utils'
@@ -21,14 +22,21 @@ class MessageRepository extends DynamoDBRepository<MessageRecord> {
 
   async create(item: Message) {
     try {
-      await super.create({
-        pk: this.getPrimaryKey(item),
-        sk: this.getSortKey(item),
-        id: generateId(),
-        ...item,
-      })
+      await super.create(
+        {
+          pk: this.getPrimaryKey(item),
+          sk: this.getSortKey(item),
+          id: generateId(),
+          ...item,
+        },
+        { conditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)' },
+      )
       logger.info('Item created successfully', { item })
     } catch (error) {
+      if (error instanceof ConditionalCheckFailedException) {
+        logger.info('Duplicate message detected, skipping', { pk: this.getPrimaryKey(item), sk: this.getSortKey(item) })
+        return
+      }
       logger.error('Error creating item in DynamoDB', { error })
       throw error
     }

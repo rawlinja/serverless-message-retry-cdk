@@ -6,49 +6,36 @@ import type { Message } from '@lib/types'
 const logger = new Logger({ serviceName: 'sqs-handler' })
 const service = new MessageService()
 
-const handler = async (event: SQSEvent) => {
-  const messages: Message[] = []
+const handler = async (event: SQSEvent): Promise<void> => {
+  await Promise.allSettled(
+    event.Records.map(async (record) => {
+      logger.info('Processing record', { messageId: record.messageId })
 
-  for (const record of event.Records) {
-    logger.info('Processing record', { messageId: record.messageId })
-
-    if (!record.body) {
-      logger.error('Record body is empty, skipping', { messageId: record.messageId })
-      continue
-    }
-
-    try {
-      const parsed = JSON.parse(record.body) as Message
-      messages.push(parsed)
-    } catch {
-      logger.error('Record body is not valid JSON, skipping', { body: record.body })
-    }
-  }
-
-  for (const message of messages) {
-    // Preserve createdAt for retry messages; set fresh for new messages
-    const createdAt = message.createdAt ?? new Date().toISOString()
-    const messageWithTimestamp: Message = { ...message, createdAt }
-
-    try {
-      await service.storeMessage(messageWithTimestamp)
-      logger.info('Message stored', { email: message.email })
-    } catch (error) {
-      logger.error('Failed to store message, recording for retry', {
-        email: message.email,
-        error,
-      })
-      const retryCount = message.retryCount ?? 0
-      try {
-        await service.failMessage(messageWithTimestamp, retryCount)
-      } catch (failError) {
-        logger.error('Failed to record message for retry, message lost', {
-          email: message.email,
-          failError,
-        })
+      if (!record.body) {
+        logger.error('Record body is empty, skipping', { messageId: record.messageId })
+        return
       }
-    }
-  }
+
+      const message = await Promise.try(() => JSON.parse(record.body) as Message).catch(() => {
+        logger.error('Record body is not valid JSON, skipping', { body: record.body })
+        return null
+      })
+
+      if (message === null) return
+
+      try {
+        await service.storeMessage(message)
+        logger.info('Message stored', { email: message.email })
+      } catch (error) {
+        logger.error('Failed to store message, recording for retry', { email: message.email, error })
+        try {
+          await service.failMessage(message, message.retryCount ?? 0)
+        } catch (failError) {
+          logger.error('Failed to record message for retry, message lost', { email: message.email, failError })
+        }
+      }
+    })
+  )
 }
 
 export { handler }
