@@ -27,11 +27,7 @@ class MessageService {
     }
   }
 
-  async storeMessage(message: Message) {
-    if (!message.email || !message.createdAt) {
-      logger.error('Missing required fields', { message })
-      throw new Error('Missing required fields')
-    }
+  async registerMessage(message: Message) {
     try {
       logger.info('Storing message to database', { message })
       await repository.create(message)

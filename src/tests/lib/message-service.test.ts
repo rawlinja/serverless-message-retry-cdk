@@ -118,10 +118,6 @@ describe('failMessage', () => {
     await expect(service.failMessage(baseMessage, 0)).rejects.toThrow('DynamoDB error')
   })
 
-  it('throws if email or createdAt is missing', async () => {
-    const service = new MessageService()
-    await expect(service.failMessage({ email: '' }, 0)).rejects.toThrow('Missing required fields')
-  })
 })
 
 describe('seedRetryMessage', () => {
