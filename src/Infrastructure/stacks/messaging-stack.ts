@@ -81,7 +81,7 @@ class MessagingStack extends Stack {
   buildLambdaFunction(name: string): lambda.Function {
     return new NodejsFunction(this, lambdaFunctionIdentifier(name), {
       architecture: lambda.Architecture.ARM_64,
-      runtime: lambda.Runtime.NODEJS_22_X,
+      runtime: lambda.Runtime.NODEJS_24_X,
       handler: name,
       entry: Path.join(__dirname, LAMBDA_SQS_PATH),
     })
