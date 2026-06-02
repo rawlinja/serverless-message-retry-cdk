@@ -17,8 +17,6 @@ graph TB
     subgraph "API Lambda Handlers"
         PostMsg[POST /messages<br/>Lambda Handler]
         GetMsg[GET /messages<br/>Lambda Handler]
-        PostRetry[POST /retry<br/>Lambda Handler]
-        GetRetry[GET /retry<br/>Lambda Handler]
     end
 
     subgraph "Messaging Stack"
@@ -65,12 +63,9 @@ graph TB
     %% API Gateway to Lambda Handlers
     APIGW -->|POST /messages| PostMsg
     APIGW -->|GET /messages| GetMsg
-    APIGW -->|POST /retry| PostRetry
-    APIGW -->|GET /retry| GetRetry
 
     %% API Handlers to MessageService
     PostMsg -->|queueMessage| MS
-    PostRetry -->|seedRetryMessage| MS
 
     %% MessageService to SQS
     MS -->|SendMessage| SQS
@@ -110,7 +105,7 @@ graph TB
     classDef client fill:#2ECC71,stroke:#27AE60,stroke-width:2px,color:#fff
 
     class APIGW,SQS,EB,SSM,SM aws
-    class Auth,PostMsg,GetMsg,PostRetry,GetRetry,SQSConsumer,Scheduler,DeleteTrigger,RelayTrigger lambda
+    class Auth,PostMsg,GetMsg,SQSConsumer,Scheduler,DeleteTrigger,RelayTrigger lambda
     class MS,MR,DR logic
     class DDB,Stream storage
     class Client client
@@ -161,36 +156,7 @@ sequenceDiagram
     RT->>RT: Relay to third-party service
 ```
 
-### 2. Manual Retry Seeding Flow
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant AG as API Gateway
-    participant A as JWT Authorizer
-    participant RH as POST /retry Handler
-    participant MS as MessageService
-    participant MR as MessageRepository
-    participant DB as DynamoDB
-
-    C->>AG: POST /retry + JWT token
-    AG->>A: Authorize request
-    A->>A: Verify JWT (HS256)
-    A-->>AG: Return allow policy
-    AG->>RH: Invoke handler
-    RH->>MS: seedRetryMessage(message)
-    MS->>MS: Compute expirationAt<br/>2^retryCount × 1hr
-    MS->>MR: create(retryMessage)
-    MR->>MR: Generate keys<br/>PK: EMAIL::email<br/>SK: CREATEDAT::timestamp
-    MR->>DB: PutItem
-    DB-->>MR: Success
-    MR-->>MS: Stored retry record
-    MS-->>RH: Success
-    RH-->>AG: 200 OK
-    AG-->>C: Response
-```
-
-### 3. Scheduled Retry Cycle (Exponential Backoff)
+### 2. Scheduled Retry Cycle (Exponential Backoff)
 
 ```mermaid
 sequenceDiagram
@@ -254,8 +220,6 @@ sequenceDiagram
 | **JWT Authorizer** | API Gateway     | Validates JWT tokens (HS256) from Secrets Manager                                                                   |
 | **POST /messages** | API Gateway     | Queues new messages to SQS                                                                                          |
 | **GET /messages**  | API Gateway     | Returns `501 Not Implemented` until the read model is built                                                         |
-| **POST /retry**    | API Gateway     | Seeds retry records directly in DynamoDB with computed `expirationAt` and `retryDate`                               |
-| **GET /retry**     | API Gateway     | Returns `501 Not Implemented` until retry-history queries are built                                                 |
 | **SQS Consumer**   | SQS Queue       | Persists messages to DynamoDB via `registerMessage`                                                                 |
 | **Scheduler**      | EventBridge     | Queries messages by `retryDate` within a lookback window (`LOOKBACK_DAYS` env var, default 2); deletes expired ones |
 | **Delete Trigger** | DynamoDB Stream | On REMOVE events, re-queues messages to SQS with `retryCount + 1`; dead-letters at `MAX_RETRIES = 5`               |

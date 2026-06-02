@@ -19,8 +19,6 @@ Client → API Gateway → Lambda → SQS → Lambda → DynamoDB
                                               ↓
                       EventBridge ← DynamoDB Streams (REMOVE) → Re-queue to SQS
                                     DynamoDB Streams (INSERT) → Relay to third-party
-
-POST /retry → API Gateway → Lambda → DynamoDB
 ```
 
 ## Status
@@ -29,7 +27,6 @@ Implemented:
 
 - JWT-protected API Gateway routes
 - `POST /messages` async ingestion path
-- `POST /retry` manual retry seeding path
 - SQS consumer persistence flow
 - Exponential backoff retry pipeline using DynamoDB, EventBridge, and DynamoDB Streams
 - DynamoDB Streams INSERT relay trigger for third-party service integration
@@ -103,12 +100,10 @@ yarn deploy
 
 All endpoints require JWT Bearer token authorization.
 
-| Method | Endpoint    | Description                                                             |
-| ------ | ----------- | ----------------------------------------------------------------------- |
-| POST   | `/messages` | Queue a new message                                                     |
-| GET    | `/messages` | Planned read endpoint, currently returns `501 Not Implemented`          |
-| POST   | `/retry`    | Seed a retry record in DynamoDB for operator/testing use                |
-| GET    | `/retry`    | Planned retry-history endpoint, currently returns `501 Not Implemented` |
+| Method | Endpoint    | Description                                                    |
+| ------ | ----------- | -------------------------------------------------------------- |
+| POST   | `/messages` | Queue a new message                                            |
+| GET    | `/messages` | Planned read endpoint, currently returns `501 Not Implemented` |
 
 ## Example Requests
 
@@ -125,21 +120,6 @@ Example response:
 
 ```text
 Message queued
-```
-
-`POST /retry`
-
-```bash
-curl -X POST https://YOUR_API_ID.execute-api.us-east-1.amazonaws.com/prod/retry \
-  -H "Authorization: Bearer YOUR_JWT" \
-  -H "Content-Type: application/json" \
-  -d '{"email":"john.doe@example.com","retryCount":2,"expirationAt":"2026-05-05T10:04:00.000Z","retryDate":"2026-05-05","data":"retry payload"}'
-```
-
-Example response:
-
-```text
-Retry message seeded {"email":"john.doe@example.com","retryCount":2,"expirationAt":"2026-05-05T10:04:00.000Z","retryDate":"2026-05-05","data":"retry payload"}
 ```
 
 ## Retry Flow
@@ -165,8 +145,7 @@ Failed messages are retried with exponential backoff:
 
 ## Current Limitations
 
-- `GET /messages` and `GET /retry` are explicitly unimplemented and return `501`.
-- `POST /retry` is currently an operator/testing path for seeding retry records, not an end-user workflow.
+- `GET /messages` is explicitly unimplemented and returns `501`.
 - The repo is optimized for demonstrating architecture and flow, not for one-command local emulation.
 
 ## Project Structure

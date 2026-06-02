@@ -48,20 +48,6 @@ export class BaseStack extends Stack {
             },
           ],
         },
-        {
-          rootName: 'RetryApi',
-          name: 'retry',
-          routes: [
-            {
-              method: 'POST',
-              handler: 'index.retryPost',
-            },
-            {
-              method: 'GET',
-              handler: 'index.retryGet',
-            },
-          ],
-        },
       ],
     })
 
