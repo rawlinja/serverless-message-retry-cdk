@@ -185,7 +185,7 @@ yarn destroy      # Tear down stack
 ## Tech Stack
 
 - AWS CDK 2.x
-- TypeScript 5.8
+- TypeScript 6.x
 - Node.js 24.x
 - AWS Lambda (ARM64)
 - DynamoDB
@@ -193,6 +193,9 @@ yarn destroy      # Tear down stack
 - API Gateway REST API
 - EventBridge
 - AWS Powertools Logger
+- Middy v7
+- Temporal API
+- Jest
 
 ## Documentation
 
