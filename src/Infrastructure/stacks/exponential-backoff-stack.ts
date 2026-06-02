@@ -4,6 +4,7 @@ import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs'
 import { lambdaFunctionIdentifier, MESSAGES_QUEUE_URL_PARAMETER_NAME } from './base-stack'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources'
+import * as sqs from 'aws-cdk-lib/aws-sqs'
 import * as Path from 'path'
 import * as iam from 'aws-cdk-lib/aws-iam'
 import { Table } from 'aws-cdk-lib/aws-dynamodb'
@@ -69,11 +70,16 @@ class ExponentialBackoffStack extends Stack {
 
     table.grantStreamRead(deleteTrigger)
 
+    const dlq = new sqs.Queue(this, 'DeleteTriggerDlq', {
+      queueName: 'delete-trigger-dlq',
+    })
+
     deleteTrigger.addEventSource(
       new lambdaEventSources.DynamoEventSource(table, {
         startingPosition: lambda.StartingPosition.TRIM_HORIZON,
         batchSize: 5,
-        retryAttempts: 0,
+        retryAttempts: 3,
+        onFailure: new lambdaEventSources.SqsDlq(dlq),
       }),
     )
   }
