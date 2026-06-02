@@ -34,7 +34,6 @@ Implemented:
 Planned:
 
 - `GET /messages` read model and pagination
-- `GET /retry` retry-history query endpoint
 - Additional deployment hardening and operator-facing ergonomics
 
 ## Prerequisites
