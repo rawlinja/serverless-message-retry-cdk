@@ -17,5 +17,5 @@
       "@stacks/*": ["./src/Infrastructure/stacks/*"]
     }
   },
-  "exclude": ["node_modules", "cdk.out", "dist/**/*"]
+  "exclude": ["node_modules", "cdk.out", "dist/**/*", "scripts"]
 }
