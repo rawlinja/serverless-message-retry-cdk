@@ -222,16 +222,16 @@ sequenceDiagram
 | **GET /messages**  | API Gateway     | Returns `501 Not Implemented` until the read model is built                                                         |
 | **SQS Consumer**   | SQS Queue       | Persists messages to DynamoDB via `registerMessage`                                                                 |
 | **Scheduler**      | EventBridge     | Queries messages by `retryDate` within a lookback window (`LOOKBACK_DAYS` env var, default 2); deletes expired ones |
-| **Delete Trigger** | DynamoDB Stream | On REMOVE events, re-queues messages to SQS with `retryCount + 1`; dead-letters at `MAX_RETRIES = 5`               |
-| **Relay Trigger**  | DynamoDB Stream | On INSERT events, relays newly persisted messages to third-party service                                             |
+| **Delete Trigger** | DynamoDB Stream | On REMOVE events, re-queues messages to SQS with `retryCount + 1`; dead-letters at `MAX_RETRIES = 5`                |
+| **Relay Trigger**  | DynamoDB Stream | On INSERT events, relays newly persisted messages to third-party service                                            |
 
 ### Business Logic Layer
 
-| Component              | Pattern            | Purpose                                                                           |
-| ---------------------- | ------------------ | --------------------------------------------------------------------------------- |
-| **MessageService**     | Service Layer      | Central hub: `queueMessage`, `registerMessage`, `seedRetryMessage`                |
-| **MessageRepository**  | Repository Pattern | Type-safe DynamoDB data access; `create`, `queryExpired`, `deleteMessage`         |
-| **DynamoDBRepository** | Generic Repository | Abstract DynamoDB CRUD operations                                                 |
+| Component              | Pattern            | Purpose                                                                   |
+| ---------------------- | ------------------ | ------------------------------------------------------------------------- |
+| **MessageService**     | Service Layer      | Central hub: `queueMessage`, `registerMessage`, `seedRetryMessage`        |
+| **MessageRepository**  | Repository Pattern | Type-safe DynamoDB data access; `create`, `queryExpired`, `deleteMessage` |
+| **DynamoDBRepository** | Generic Repository | Abstract DynamoDB CRUD operations                                         |
 
 ## Configuration and Shared References
 
@@ -263,20 +263,20 @@ Stacks and runtime components share configuration through **SSM Parameter Store*
 type Message = {
   firstName?: string
   lastName?: string
-  email: string         // Required
+  email: string // Required
   phone?: string
-  createdAt?: string    // ISO timestamp; auto-set by MessageService
+  createdAt?: string // ISO timestamp; auto-set by MessageService
   data?: string
-  retryCount?: number   // Incremented on each retry cycle
+  retryCount?: number // Incremented on each retry cycle
   expirationAt?: string // ISO timestamp; record deleted when this passes
-  retryDate?: string    // YYYY-MM-DD; used by Scheduler to query candidates
+  retryDate?: string // YYYY-MM-DD; used by Scheduler to query candidates
 }
 
 // Stored record also includes repository-generated fields:
 type MessageRecord = Message & {
-  pk: string  // EMAIL::${email}
-  sk: string  // CREATEDAT::${timestamp}
-  id: string  // 6-char hex (Nano ID)
+  pk: string // EMAIL::${email}
+  sk: string // CREATEDAT::${timestamp}
+  id: string // 6-char hex (Nano ID)
 }
 ```
 

@@ -35,9 +35,15 @@ describe('relay trigger', () => {
   it('processes multiple records in a batch', async () => {
     const event: DynamoDBStreamEvent = {
       Records: [
-        { eventName: 'INSERT', dynamodb: { NewImage: marshall({ email: 'a@example.com' }) } } as DynamoDBRecord,
+        {
+          eventName: 'INSERT',
+          dynamodb: { NewImage: marshall({ email: 'a@example.com' }) },
+        } as DynamoDBRecord,
         { eventName: 'REMOVE', dynamodb: {} } as DynamoDBRecord,
-        { eventName: 'INSERT', dynamodb: { NewImage: marshall({ email: 'b@example.com' }) } } as DynamoDBRecord,
+        {
+          eventName: 'INSERT',
+          dynamodb: { NewImage: marshall({ email: 'b@example.com' }) },
+        } as DynamoDBRecord,
       ],
     }
     await expect(handler(event)).resolves.toBeUndefined()

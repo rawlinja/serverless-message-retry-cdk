@@ -29,7 +29,9 @@ const main = async () => {
   }
 
   console.log('Scheduler invoked successfully.')
-  console.log('Check CloudWatch logs for deletion details, then wait a few seconds for the stream trigger to fire.')
+  console.log(
+    'Check CloudWatch logs for deletion details, then wait a few seconds for the stream trigger to fire.',
+  )
 }
 
 main().catch((err) => {

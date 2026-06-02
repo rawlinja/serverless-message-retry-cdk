@@ -75,4 +75,3 @@ describe('GET /messages', () => {
     expect(result.body).toContain('read model pending')
   })
 })
-

@@ -33,7 +33,6 @@ class MessageService {
       createdAt: Temporal.Now.instant().toString({ smallestUnit: 'millisecond' }),
     }
   }
-
 }
 
 export { MessageService }

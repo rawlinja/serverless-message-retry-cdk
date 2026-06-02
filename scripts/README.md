@@ -12,18 +12,18 @@ TypeScript scripts for testing the deployed stack against real AWS infrastructur
 
 Set the following environment variables before running any script.
 
-| Variable                 | Required | Default    | Description                                             |
-| ------------------------ | -------- | ---------- | ------------------------------------------------------- |
-| `API_URL`                | Yes\*    | —          | API Gateway base URL (e.g. `https://xxx.execute-api.us-east-1.amazonaws.com/prod`) |
-| `JWT_TOKEN`              | Yes\*    | —          | Bearer token for API authorization                      |
-| `EMAIL`                  | Yes\*    | —          | Email address used as the DynamoDB partition key        |
-| `TABLE_NAME`             | No       | `Messages` | DynamoDB table name                                     |
-| `RETRY_COUNT`            | No       | `0`        | Starting retry count when seeding a retry record        |
-| `IMMEDIATE`              | No       | `false`    | Set to `true` to make a seeded record immediately eligible for the scheduler |
-| `SCHEDULER_FUNCTION_NAME`| Yes\*    | —          | Full Lambda function name for the scheduler (find in AWS console or CLI) |
-| `FUNCTION_NAME`          | Yes\*    | —          | Full Lambda function name for log inspection                            |
-| `MINUTES`                | No       | `5`        | How many minutes back to look when fetching logs                        |
-| `FILTER`                 | No       | —          | Optional string to filter log lines (e.g. an email address)             |
+| Variable                  | Required | Default    | Description                                                                        |
+| ------------------------- | -------- | ---------- | ---------------------------------------------------------------------------------- |
+| `API_URL`                 | Yes\*    | —          | API Gateway base URL (e.g. `https://xxx.execute-api.us-east-1.amazonaws.com/prod`) |
+| `JWT_TOKEN`               | Yes\*    | —          | Bearer token for API authorization                                                 |
+| `EMAIL`                   | Yes\*    | —          | Email address used as the DynamoDB partition key                                   |
+| `TABLE_NAME`              | No       | `Messages` | DynamoDB table name                                                                |
+| `RETRY_COUNT`             | No       | `0`        | Starting retry count when seeding a retry record                                   |
+| `IMMEDIATE`               | No       | `false`    | Set to `true` to make a seeded record immediately eligible for the scheduler       |
+| `SCHEDULER_FUNCTION_NAME` | Yes\*    | —          | Full Lambda function name for the scheduler (find in AWS console or CLI)           |
+| `FUNCTION_NAME`           | Yes\*    | —          | Full Lambda function name for log inspection                                       |
+| `MINUTES`                 | No       | `5`        | How many minutes back to look when fetching logs                                   |
+| `FILTER`                  | No       | —          | Optional string to filter log lines (e.g. an email address)                        |
 
 \* Required by specific scripts — see below.
 

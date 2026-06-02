@@ -32,7 +32,9 @@ const main = async () => {
   )
 
   if (streams.length === 0) {
-    console.log(`No log streams with activity in the last ${MINUTES} minute(s) for ${FUNCTION_NAME}`)
+    console.log(
+      `No log streams with activity in the last ${MINUTES} minute(s) for ${FUNCTION_NAME}`,
+    )
     return
   }
 
@@ -47,15 +49,16 @@ const main = async () => {
     )
 
     const events = eventsResult.events ?? []
-    const filtered = FILTER
-      ? events.filter((e) => e.message?.includes(FILTER))
-      : events
+    const filtered = FILTER ? events.filter((e) => e.message?.includes(FILTER)) : events
 
     for (const event of filtered) {
       const time = new Date(event.timestamp!).toISOString()
       try {
         const parsed = JSON.parse(event.message!)
-        console.log(`[${time}] ${parsed.level ?? ''} ${parsed.message ?? event.message}`, parsed.email ? `(${parsed.email})` : '')
+        console.log(
+          `[${time}] ${parsed.level ?? ''} ${parsed.message ?? event.message}`,
+          parsed.email ? `(${parsed.email})` : '',
+        )
       } catch {
         console.log(`[${time}] ${event.message?.trim()}`)
       }

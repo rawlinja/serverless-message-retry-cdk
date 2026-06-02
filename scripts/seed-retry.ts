@@ -24,7 +24,10 @@ const main = async () => {
         .add({ milliseconds: Math.pow(2, RETRY_COUNT) * BASE_DELAY_MS })
         .toString({ smallestUnit: 'millisecond' })
 
-  const retryDate = Temporal.Instant.from(expirationAt).toZonedDateTimeISO('UTC').toPlainDate().toString()
+  const retryDate = Temporal.Instant.from(expirationAt)
+    .toZonedDateTimeISO('UTC')
+    .toPlainDate()
+    .toString()
 
   const message = {
     email: EMAIL,
