@@ -1,5 +1,7 @@
 # Serverless Message Retry System
 
+![CI](https://github.com/rawlinja/serverless-message-retry-cdk/actions/workflows/ci.yml/badge.svg)
+
 A distributed message processing system with retry capabilities built on AWS serverless architecture using CDK.
 
 This repo is a work in progress. It focuses on the core message and retry pipeline: authenticated ingestion, SQS-based processing, DynamoDB persistence, and scheduled retry replay.
