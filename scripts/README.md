@@ -6,11 +6,11 @@ TypeScript scripts for testing the deployed stack against real AWS infrastructur
 
 - Stack deployed (`yarn deploy`)
 - AWS credentials configured in your shell (`AWS_PROFILE` or `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`)
-- A valid JWT token for the API (see root `create_token.js`)
+- A valid JWT token for the API
 
 ## Configuration
 
-Set the following environment variables before running any script. The easiest approach is to export them in your shell or use a `.env` file with `node --env-file=.env`.
+Set the following environment variables before running any script.
 
 | Variable                 | Required | Default    | Description                                             |
 | ------------------------ | -------- | ---------- | ------------------------------------------------------- |
@@ -21,6 +21,9 @@ Set the following environment variables before running any script. The easiest a
 | `RETRY_COUNT`            | No       | `0`        | Starting retry count when seeding a retry record        |
 | `IMMEDIATE`              | No       | `false`    | Set to `true` to make a seeded record immediately eligible for the scheduler |
 | `SCHEDULER_FUNCTION_NAME`| Yes\*    | —          | Full Lambda function name for the scheduler (find in AWS console or CLI) |
+| `FUNCTION_NAME`          | Yes\*    | —          | Full Lambda function name for log inspection                            |
+| `MINUTES`                | No       | `5`        | How many minutes back to look when fetching logs                        |
+| `FILTER`                 | No       | —          | Optional string to filter log lines (e.g. an email address)             |
 
 \* Required by specific scripts — see below.
 
@@ -132,6 +135,36 @@ Check CloudWatch logs for deletion details, then wait a few seconds for the stre
 
 ---
 
+### `check-logs.ts`
+
+Fetches recent CloudWatch log events for any Lambda function in the stack. Useful for verifying what the SQS consumer, relay trigger, or delete trigger actually did after running other scripts.
+
+**Required:** `FUNCTION_NAME`  
+**Optional:** `MINUTES` (default `5`), `FILTER`
+
+```bash
+FUNCTION_NAME=MessagingStack-indexstorelambdafunction-XXXX \
+yarn tsx scripts/check-logs.ts
+
+# Filter by email
+FUNCTION_NAME=... FILTER=fixed@example.com \
+yarn tsx scripts/check-logs.ts
+
+# Look back further
+FUNCTION_NAME=... MINUTES=15 \
+yarn tsx scripts/check-logs.ts
+```
+
+Expected output:
+
+```
+[2026-06-01T12:00:01.000Z] INFO Received SQS record (fixed@example.com)
+[2026-06-01T12:00:01.050Z] INFO Message persisted to DynamoDB (fixed@example.com)
+[2026-06-01T12:00:01.060Z] INFO Duplicate message detected, skipping (fixed@example.com)
+```
+
+---
+
 ## Test Scenarios
 
 ### 1. Happy path — message submission
@@ -149,7 +182,7 @@ yarn tsx scripts/send-message.ts
 EMAIL=test@example.com yarn tsx scripts/check-messages.ts
 ```
 
-You should see one record with no `retryCount`, `expirationAt`, or `retryDate`. The relay trigger will have logged the INSERT event in CloudWatch.
+You should see one record with no `retryCount`, `expirationAt`, or `retryDate`. Use `check-logs.ts` with the relay trigger function name to confirm the INSERT event was processed.
 
 ---
 
@@ -202,8 +235,9 @@ yarn tsx scripts/seed-retry.ts
 
 SCHEDULER_FUNCTION_NAME=... yarn tsx scripts/invoke-scheduler.ts
 
-# Step 6: Check CloudWatch logs for the delete trigger — expect:
-#         "Message exceeded max retries, dead lettered"
+# Step 6: Check delete trigger logs — expect "Message exceeded max retries, dead lettered"
+FUNCTION_NAME=... yarn tsx scripts/check-logs.ts
+
 # Step 7: Confirm no new record was created
 EMAIL=test@example.com yarn tsx scripts/check-messages.ts
 ```
