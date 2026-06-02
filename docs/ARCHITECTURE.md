@@ -40,6 +40,10 @@ graph TB
         DeleteTrigger[Delete Trigger<br/>Lambda]
     end
 
+    subgraph "Relay Stack"
+        RelayTrigger[Relay Trigger<br/>Lambda]
+    end
+
     subgraph "Parameter Store"
         SSM[SSM Parameters<br/>- Queue URL<br/>- Middy Layer ARN]
     end
@@ -83,8 +87,9 @@ graph TB
     DR -->|PutItem/Query/Delete| DDB
 
     %% DynamoDB Streams
-    DDB -->|Stream Events<br/>REMOVE| Stream
-    Stream -->|Batch: 5 events| DeleteTrigger
+    DDB -->|Stream Events<br/>REMOVE + INSERT| Stream
+    Stream -->|Batch: 5 events<br/>REMOVE| DeleteTrigger
+    Stream -->|Batch: 5 events<br/>INSERT| RelayTrigger
 
     %% Delete Trigger re-queues eligible messages
     DeleteTrigger -->|queueMessage<br/>retryCount + 1| SQS
@@ -105,7 +110,7 @@ graph TB
     classDef client fill:#2ECC71,stroke:#27AE60,stroke-width:2px,color:#fff
 
     class APIGW,SQS,EB,SSM,SM aws
-    class Auth,PostMsg,GetMsg,PostRetry,GetRetry,SQSConsumer,Scheduler,DeleteTrigger lambda
+    class Auth,PostMsg,GetMsg,PostRetry,GetRetry,SQSConsumer,Scheduler,DeleteTrigger,RelayTrigger lambda
     class MS,MR,DR logic
     class DDB,Stream storage
     class Client client
@@ -126,6 +131,7 @@ sequenceDiagram
     participant SC as SQS Consumer
     participant MR as MessageRepository
     participant DB as DynamoDB
+    participant RT as Relay Trigger Lambda
 
     C->>AG: POST /messages + JWT token
     AG->>A: Authorize request
@@ -148,6 +154,11 @@ sequenceDiagram
     DB-->>MR: Success
     MR-->>MS: Stored message
     MS-->>SC: Complete
+
+    Note over DB,RT: Stream delivers INSERT event
+    DB->>RT: INSERT event (batch: 5)
+    RT->>RT: Unmarshall NewImage
+    RT->>RT: Relay to third-party service
 ```
 
 ### 2. Manual Retry Seeding Flow
@@ -233,7 +244,8 @@ sequenceDiagram
 | **MessagingStack**          | SQS Queue + Consumer                | Async message processing                           |
 | **ApiStack**                | API Gateway + Handlers + Authorizer | REST API endpoints with JWT auth                   |
 | **SchedulerStack**          | EventBridge + Lambda                | Scheduled retry jobs                               |
-| **ExponentialBackoffStack** | DynamoDB Stream Trigger             | React to message deletions                         |
+| **ExponentialBackoffStack** | DynamoDB Stream Trigger             | React to message deletions, re-queue for retry     |
+| **RelayStack**              | DynamoDB Stream Trigger             | Relay inserted messages to third-party service     |
 
 ### Lambda Functions
 
@@ -245,14 +257,15 @@ sequenceDiagram
 | **POST /retry**    | API Gateway     | Seeds retry records directly in DynamoDB with computed `expirationAt` and `retryDate`                               |
 | **GET /retry**     | API Gateway     | Returns `501 Not Implemented` until retry-history queries are built                                                 |
 | **SQS Consumer**   | SQS Queue       | Persists messages to DynamoDB via `registerMessage`                                                                 |
-| **Scheduler**      | EventBridge     | Queries messages by `retryDate` within a lookback window (`LOOKBACK_DAYS` env var, set to 30); deletes expired ones |
+| **Scheduler**      | EventBridge     | Queries messages by `retryDate` within a lookback window (`LOOKBACK_DAYS` env var, default 2); deletes expired ones |
 | **Delete Trigger** | DynamoDB Stream | On REMOVE events, re-queues messages to SQS with `retryCount + 1`; dead-letters at `MAX_RETRIES = 5`               |
+| **Relay Trigger**  | DynamoDB Stream | On INSERT events, relays newly persisted messages to third-party service                                             |
 
 ### Business Logic Layer
 
 | Component              | Pattern            | Purpose                                                                           |
 | ---------------------- | ------------------ | --------------------------------------------------------------------------------- |
-| **MessageService**     | Service Layer      | Central hub: `queueMessage`, `registerMessage`, `seedRetryMessage`, `failMessage` |
+| **MessageService**     | Service Layer      | Central hub: `queueMessage`, `registerMessage`, `seedRetryMessage`                |
 | **MessageRepository**  | Repository Pattern | Type-safe DynamoDB data access; `create`, `queryExpired`, `deleteMessage`         |
 | **DynamoDBRepository** | Generic Repository | Abstract DynamoDB CRUD operations                                                 |
 
@@ -307,7 +320,7 @@ type MessageRecord = Message & {
 
 | Technology                | Description                               |
 | ------------------------- | ----------------------------------------- |
-| Node.js 22.x              | LTS runtime, TypeScript execution via tsx |
+| Node.js 24.x              | LTS runtime, TypeScript execution via tsx |
 | ARM64 (Graviton2)         | Lambda compute architecture               |
 | Yarn 4.15.0               | Package manager                           |
 | AWS CDK 2.x               | Infrastructure as code                    |

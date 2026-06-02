@@ -9,7 +9,7 @@ This repo is a work in progress. It focuses on the core message and retry pipeli
 The system uses a multi-stack CDK pattern with the following components:
 
 - **API Gateway (REST)** - HTTP endpoints with JWT authentication
-- **Lambda** - Node.js 22.x handlers on ARM64 (Graviton2)
+- **Lambda** - Node.js 24.x handlers on ARM64 (Graviton2)
 - **DynamoDB** - Message persistence with streams enabled
 - **SQS** - Asynchronous message queuing
 - **EventBridge** - Scheduled retry jobs
@@ -17,7 +17,8 @@ The system uses a multi-stack CDK pattern with the following components:
 ```
 Client → API Gateway → Lambda → SQS → Lambda → DynamoDB
                                               ↓
-                              EventBridge ← DynamoDB Streams
+                      EventBridge ← DynamoDB Streams (REMOVE) → Re-queue to SQS
+                                    DynamoDB Streams (INSERT) → Relay to third-party
 
 POST /retry → API Gateway → Lambda → DynamoDB
 ```
@@ -31,6 +32,7 @@ Implemented:
 - `POST /retry` manual retry seeding path
 - SQS consumer persistence flow
 - Exponential backoff retry pipeline using DynamoDB, EventBridge, and DynamoDB Streams
+- DynamoDB Streams INSERT relay trigger for third-party service integration
 
 Planned:
 
@@ -63,12 +65,12 @@ Before deploying, configure these AWS resources:
    cd ..
    zip -r middy-layer.zip nodejs/
 
-   # Publish to AWS (note: ARM64 + Node 22 to match Lambda config)
+   # Publish to AWS (note: ARM64 + Node 24 to match Lambda config)
    aws lambda publish-layer-version \
      --layer-name middy \
      --description "Middy middleware v6" \
      --zip-file fileb://middy-layer.zip \
-     --compatible-runtimes nodejs22.x \
+     --compatible-runtimes nodejs24.x \
      --compatible-architectures arm64
    ```
 
@@ -122,7 +124,7 @@ curl -X POST https://YOUR_API_ID.execute-api.us-east-1.amazonaws.com/prod/messag
 Example response:
 
 ```text
-Message sent {"email":"john.doe@example.com","firstName":"John","lastName":"Doe","data":"message payload"}
+Message queued
 ```
 
 `POST /retry`
@@ -178,7 +180,8 @@ src/
 │   ├── persistence-stack.ts # DynamoDB
 │   ├── messaging-stack.ts  # SQS + consumer
 │   ├── scheduler-stack.ts  # EventBridge jobs
-│   └── exponential-backoff-stack.ts
+│   ├── exponential-backoff-stack.ts
+│   └── relay-stack.ts      # DynamoDB stream INSERT relay
 ├── lambda/                 # Lambda handlers
 │   ├── api/                # API endpoints
 │   ├── sqs/                # SQS consumer
@@ -205,7 +208,7 @@ yarn destroy      # Tear down stack
 
 - AWS CDK 2.x
 - TypeScript 5.8
-- Node.js 22.x
+- Node.js 24.x
 - AWS Lambda (ARM64)
 - DynamoDB
 - SQS
