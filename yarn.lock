@@ -155,6 +155,24 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@aws-sdk/client-lambda@npm:^3.1053.0":
+  version: 3.1053.0
+  resolution: "@aws-sdk/client-lambda@npm:3.1053.0"
+  dependencies:
+    "@aws-crypto/sha256-browser": "npm:5.2.0"
+    "@aws-crypto/sha256-js": "npm:5.2.0"
+    "@aws-sdk/core": "npm:^3.974.13"
+    "@aws-sdk/credential-provider-node": "npm:^3.972.44"
+    "@aws-sdk/types": "npm:^3.973.9"
+    "@smithy/core": "npm:^3.24.3"
+    "@smithy/fetch-http-handler": "npm:^5.4.3"
+    "@smithy/node-http-handler": "npm:^4.7.3"
+    "@smithy/types": "npm:^4.14.2"
+    tslib: "npm:^2.6.2"
+  checksum: 10c0/46571793e705450af3e0da896400c1e91a582ad187aa86fc3ece924490bc77f603fcc2d06a70d93d6a09c62979b4aacb56d46fc1a2fe5ba96228577af119ae40
+  languageName: node
+  linkType: hard
+
 "@aws-sdk/client-secrets-manager@npm:^3.1053.0":
   version: 3.1053.0
   resolution: "@aws-sdk/client-secrets-manager@npm:3.1053.0"
@@ -5623,6 +5641,7 @@ __metadata:
   dependencies:
     "@aws-lambda-powertools/logger": "npm:^2.33.0"
     "@aws-sdk/client-dynamodb": "npm:^3.1053.0"
+    "@aws-sdk/client-lambda": "npm:^3.1053.0"
     "@aws-sdk/client-secrets-manager": "npm:^3.1053.0"
     "@aws-sdk/client-sqs": "npm:^3.1053.0"
     "@aws-sdk/client-ssm": "npm:^3.1053.0"
