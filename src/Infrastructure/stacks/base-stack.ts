@@ -5,6 +5,7 @@ import { MessagingStack } from './messaging-stack'
 import { PersistenceStack } from './persistence-stack'
 import { SchedulerStack } from './scheduler-stack'
 import { ExponentialBackoffStack } from './exponential-backoff-stack'
+import { RelayStack } from './relay-stack'
 
 export const LAMBDA_SQS_PATH = '../../lambda/sqs/index.ts'
 export const MESSAGES_QUEUE_URL_PARAMETER_NAME = '/prod/messages/queue-url'
@@ -75,6 +76,12 @@ export class BaseStack extends Stack {
       tableArn,
       tableStreamArn,
       queueArn,
+    })
+
+    new RelayStack(scope, 'RelayStack', {
+      handler: 'index.relay',
+      tableArn,
+      tableStreamArn,
     })
   }
 }
