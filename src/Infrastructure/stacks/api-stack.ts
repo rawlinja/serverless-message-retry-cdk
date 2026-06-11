@@ -155,7 +155,6 @@ class ApiStack extends Stack {
     if (handler === 'index.messagesPost') {
       routeLambda.addToRolePolicy(this.createSendMessagePolicyStatement(queueArn))
     }
-
   }
 
   getMessageQueueUrl(): string {

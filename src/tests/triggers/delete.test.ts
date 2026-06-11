@@ -33,13 +33,17 @@ describe('delete trigger', () => {
   it('writes retry record to DynamoDB with incremented retryCount and backoff', async () => {
     ddbMock.on(PutItemCommand).resolves({})
 
-    await handler(makeEvent([makeRemoveRecord({
-      pk: 'EMAIL::test@example.com',
-      sk: 'CREATEDAT::2026-06-10T10:00:00.000Z',
-      email: 'test@example.com',
-      createdAt: '2026-06-10T10:00:00.000Z',
-      retryCount: 0,
-    })]))
+    await handler(
+      makeEvent([
+        makeRemoveRecord({
+          pk: 'EMAIL::test@example.com',
+          sk: 'CREATEDAT::2026-06-10T10:00:00.000Z',
+          email: 'test@example.com',
+          createdAt: '2026-06-10T10:00:00.000Z',
+          retryCount: 0,
+        }),
+      ]),
+    )
 
     const calls = ddbMock.commandCalls(PutItemCommand)
     expect(calls).toHaveLength(1)
@@ -54,13 +58,17 @@ describe('delete trigger', () => {
   it('doubles the backoff interval on each retry', async () => {
     ddbMock.on(PutItemCommand).resolves({})
 
-    await handler(makeEvent([makeRemoveRecord({
-      pk: 'EMAIL::test@example.com',
-      sk: 'CREATEDAT::2026-06-10T10:00:00.000Z',
-      email: 'test@example.com',
-      createdAt: '2026-06-10T10:00:00.000Z',
-      retryCount: 2,
-    })]))
+    await handler(
+      makeEvent([
+        makeRemoveRecord({
+          pk: 'EMAIL::test@example.com',
+          sk: 'CREATEDAT::2026-06-10T10:00:00.000Z',
+          email: 'test@example.com',
+          createdAt: '2026-06-10T10:00:00.000Z',
+          retryCount: 2,
+        }),
+      ]),
+    )
 
     const stored = unmarshall(ddbMock.commandCalls(PutItemCommand)[0].args[0].input.Item!)
     expect(stored.retryCount).toBe(3)
@@ -68,13 +76,17 @@ describe('delete trigger', () => {
   })
 
   it('does not write when retryCount reaches MAX_RETRIES (5)', async () => {
-    await handler(makeEvent([makeRemoveRecord({
-      pk: 'EMAIL::test@example.com',
-      sk: 'CREATEDAT::2026-06-10T10:00:00.000Z',
-      email: 'test@example.com',
-      createdAt: '2026-06-10T10:00:00.000Z',
-      retryCount: 5,
-    })]))
+    await handler(
+      makeEvent([
+        makeRemoveRecord({
+          pk: 'EMAIL::test@example.com',
+          sk: 'CREATEDAT::2026-06-10T10:00:00.000Z',
+          email: 'test@example.com',
+          createdAt: '2026-06-10T10:00:00.000Z',
+          retryCount: 5,
+        }),
+      ]),
+    )
 
     expect(ddbMock.commandCalls(PutItemCommand)).toHaveLength(0)
   })
@@ -98,13 +110,19 @@ describe('delete trigger', () => {
   it('does not throw when DynamoDB write fails — skips record to preserve batch', async () => {
     ddbMock.on(PutItemCommand).rejects(new Error('DynamoDB unavailable'))
 
-    await expect(handler(makeEvent([makeRemoveRecord({
-      pk: 'EMAIL::test@example.com',
-      sk: 'CREATEDAT::2026-06-10T10:00:00.000Z',
-      email: 'test@example.com',
-      createdAt: '2026-06-10T10:00:00.000Z',
-      retryCount: 1,
-    })]))).resolves.not.toThrow()
+    await expect(
+      handler(
+        makeEvent([
+          makeRemoveRecord({
+            pk: 'EMAIL::test@example.com',
+            sk: 'CREATEDAT::2026-06-10T10:00:00.000Z',
+            email: 'test@example.com',
+            createdAt: '2026-06-10T10:00:00.000Z',
+            retryCount: 1,
+          }),
+        ]),
+      ),
+    ).resolves.not.toThrow()
   })
 
   it('skips REMOVE record with missing OldImage without throwing', async () => {

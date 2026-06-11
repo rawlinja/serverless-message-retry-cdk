@@ -28,11 +28,7 @@ class ExponentialBackoffStack extends Stack {
     })
   }
 
-  build(buildProps: {
-    handler: string
-    tableArn: string
-    tableStreamArn: string
-  }) {
+  build(buildProps: { handler: string; tableArn: string; tableStreamArn: string }) {
     const deleteTrigger = this.buildLambdaFunction(buildProps.handler, {})
 
     deleteTrigger.addToRolePolicy(
