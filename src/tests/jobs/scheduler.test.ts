@@ -66,6 +66,15 @@ describe('scheduler handler', () => {
     expect(ddbMock.commandCalls(DeleteItemCommand)).toHaveLength(0)
   })
 
+  it('defaults to 2 lookback days when LOOKBACK_DAYS is not set', async () => {
+    delete process.env.LOOKBACK_DAYS
+    ddbMock.on(QueryCommand).resolves({ Items: [] })
+
+    await handler()
+
+    expect(ddbMock.commandCalls(QueryCommand)).toHaveLength(2)
+  })
+
   it('continues to next date if one date query fails', async () => {
     process.env.LOOKBACK_DAYS = '2'
     ddbMock

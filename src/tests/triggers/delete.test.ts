@@ -1,14 +1,19 @@
 import { mockClient } from 'aws-sdk-client-mock'
-import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs'
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
-import { marshall } from '@aws-sdk/util-dynamodb'
+import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb'
+import { unmarshall, marshall } from '@aws-sdk/util-dynamodb'
 import { DynamoDBStreamEvent } from 'aws-lambda'
 import { handler } from '../../lambda/triggers/delete'
 
-const sqsMock = mockClient(SQSClient)
-mockClient(DynamoDBClient)
+const ddbMock = mockClient(DynamoDBClient)
+const FIXED_NOW = new Date('2026-06-10T12:00:00.000Z')
 
-beforeEach(() => sqsMock.reset())
+beforeEach(() => {
+  ddbMock.reset()
+  jest.useFakeTimers()
+  jest.setSystemTime(FIXED_NOW)
+})
+
+afterEach(() => jest.useRealTimers())
 
 const makeRemoveRecord = (oldImage: object) => ({
   eventName: 'REMOVE' as const,
@@ -25,44 +30,56 @@ const makeEvent = (records: object[]): DynamoDBStreamEvent => ({
 })
 
 describe('delete trigger', () => {
-  it('re-queues message to SQS with incremented retryCount', async () => {
-    sqsMock.on(SendMessageCommand).resolves({ MessageId: 'msg-id' })
+  it('writes retry record to DynamoDB with incremented retryCount and backoff', async () => {
+    ddbMock.on(PutItemCommand).resolves({})
 
-    const message = {
+    await handler(makeEvent([makeRemoveRecord({
       pk: 'EMAIL::test@example.com',
-      sk: 'CREATEDAT::2026-05-05T10:00:00.000Z',
+      sk: 'CREATEDAT::2026-06-10T10:00:00.000Z',
       email: 'test@example.com',
-      createdAt: '2026-05-05T10:00:00.000Z',
-      retryCount: 2,
-    }
+      createdAt: '2026-06-10T10:00:00.000Z',
+      retryCount: 0,
+    })]))
 
-    await handler(makeEvent([makeRemoveRecord(message)]))
-
-    const calls = sqsMock.commandCalls(SendMessageCommand)
+    const calls = ddbMock.commandCalls(PutItemCommand)
     expect(calls).toHaveLength(1)
 
-    const body = JSON.parse(calls[0].args[0].input.MessageBody!)
-    expect(body.retryCount).toBe(3)
-    expect(body.email).toBe('test@example.com')
+    const stored = unmarshall(calls[0].args[0].input.Item!)
+    expect(stored.retryCount).toBe(1)
+    expect(stored.expirationAt).toBe('2026-06-10T13:00:00.000Z')
+    expect(stored.retryDate).toBe('2026-06-10')
+    expect(stored.email).toBe('test@example.com')
   })
 
-  it('does not re-queue when retryCount reaches MAX_RETRIES (5)', async () => {
-    sqsMock.on(SendMessageCommand).resolves({})
+  it('doubles the backoff interval on each retry', async () => {
+    ddbMock.on(PutItemCommand).resolves({})
 
-    const message = {
+    await handler(makeEvent([makeRemoveRecord({
       pk: 'EMAIL::test@example.com',
-      sk: 'CREATEDAT::2026-05-05T10:00:00.000Z',
+      sk: 'CREATEDAT::2026-06-10T10:00:00.000Z',
       email: 'test@example.com',
-      createdAt: '2026-05-05T10:00:00.000Z',
-      retryCount: 5,
-    }
+      createdAt: '2026-06-10T10:00:00.000Z',
+      retryCount: 2,
+    })]))
 
-    await handler(makeEvent([makeRemoveRecord(message)]))
-
-    expect(sqsMock.commandCalls(SendMessageCommand)).toHaveLength(0)
+    const stored = unmarshall(ddbMock.commandCalls(PutItemCommand)[0].args[0].input.Item!)
+    expect(stored.retryCount).toBe(3)
+    expect(stored.expirationAt).toBe('2026-06-10T16:00:00.000Z') // now + 4h
   })
 
-  it('skips non-REMOVE events without calling SQS', async () => {
+  it('does not write when retryCount reaches MAX_RETRIES (5)', async () => {
+    await handler(makeEvent([makeRemoveRecord({
+      pk: 'EMAIL::test@example.com',
+      sk: 'CREATEDAT::2026-06-10T10:00:00.000Z',
+      email: 'test@example.com',
+      createdAt: '2026-06-10T10:00:00.000Z',
+      retryCount: 5,
+    })]))
+
+    expect(ddbMock.commandCalls(PutItemCommand)).toHaveLength(0)
+  })
+
+  it('skips non-REMOVE events without writing', async () => {
     const insertRecord = {
       eventName: 'INSERT' as const,
       dynamodb: { NewImage: marshall({ email: 'test@example.com' }) },
@@ -75,7 +92,19 @@ describe('delete trigger', () => {
 
     await handler(makeEvent([insertRecord]))
 
-    expect(sqsMock.commandCalls(SendMessageCommand)).toHaveLength(0)
+    expect(ddbMock.commandCalls(PutItemCommand)).toHaveLength(0)
+  })
+
+  it('does not throw when DynamoDB write fails — skips record to preserve batch', async () => {
+    ddbMock.on(PutItemCommand).rejects(new Error('DynamoDB unavailable'))
+
+    await expect(handler(makeEvent([makeRemoveRecord({
+      pk: 'EMAIL::test@example.com',
+      sk: 'CREATEDAT::2026-06-10T10:00:00.000Z',
+      email: 'test@example.com',
+      createdAt: '2026-06-10T10:00:00.000Z',
+      retryCount: 1,
+    })]))).resolves.not.toThrow()
   })
 
   it('skips REMOVE record with missing OldImage without throwing', async () => {
@@ -90,6 +119,6 @@ describe('delete trigger', () => {
     }
 
     await expect(handler(makeEvent([record]))).resolves.not.toThrow()
-    expect(sqsMock.commandCalls(SendMessageCommand)).toHaveLength(0)
+    expect(ddbMock.commandCalls(PutItemCommand)).toHaveLength(0)
   })
 })

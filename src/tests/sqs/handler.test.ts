@@ -71,6 +71,16 @@ describe('sqs handler', () => {
     expect(stored.email).toBe('ok@example.com')
   })
 
+  it('skips records with empty body', async () => {
+    ddbMock.on(PutItemCommand).resolves({})
+
+    const emptyBodyRecord: SQSRecord = { ...makeRecord({ email: 'test@example.com' }), body: '' }
+
+    await handler(makeEvent([emptyBodyRecord]))
+
+    expect(ddbMock.commandCalls(PutItemCommand)).toHaveLength(0)
+  })
+
   it('throws when a record fails so SQS redelivers the batch', async () => {
     ddbMock.on(PutItemCommand).rejectsOnce(new Error('DynamoDB unavailable'))
 

@@ -8,7 +8,6 @@ describe('ExponentialBackoffStack', () => {
     handler: 'index.delete',
     tableArn: 'arn:aws:dynamodb:us-east-1:123456789012:table/Messages',
     tableStreamArn: 'arn:aws:dynamodb:us-east-1:123456789012:table/Messages/stream/2024-01-01',
-    queueArn: 'arn:aws:sqs:us-east-1:123456789012:messages-queue',
   })
   const template = Template.fromStack(stack)
 
