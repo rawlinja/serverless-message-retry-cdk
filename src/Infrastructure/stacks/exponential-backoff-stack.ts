@@ -1,24 +1,21 @@
 import { Construct } from 'constructs'
 import { StackProps, Stack } from 'aws-cdk-lib'
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs'
-import { lambdaFunctionIdentifier, MESSAGES_QUEUE_URL_PARAMETER_NAME } from './base-stack'
+import { lambdaFunctionIdentifier } from './base-stack'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources'
 import * as sqs from 'aws-cdk-lib/aws-sqs'
 import * as Path from 'path'
 import * as iam from 'aws-cdk-lib/aws-iam'
 import { Table } from 'aws-cdk-lib/aws-dynamodb'
-import { StringParameter } from 'aws-cdk-lib/aws-ssm'
 
 const LAMBDA_STREAMS_PATH = '../../lambda/triggers/index.ts'
 const MESSAGES_TABLE_IMPORT_ID = 'MessagesTableImport'
-const MESSAGES_QUEUE_URL_PARAMETER_ID = 'MessagesQueueUrlParameter'
 
 type ExponentialBackoffStackProps = StackProps & {
   handler: string
   tableArn: string
   tableStreamArn: string
-  queueArn: string
 }
 
 class ExponentialBackoffStack extends Stack {
@@ -28,7 +25,6 @@ class ExponentialBackoffStack extends Stack {
       handler: props.handler,
       tableArn: props.tableArn,
       tableStreamArn: props.tableStreamArn,
-      queueArn: props.queueArn,
     })
   }
 
@@ -36,17 +32,8 @@ class ExponentialBackoffStack extends Stack {
     handler: string
     tableArn: string
     tableStreamArn: string
-    queueArn: string
   }) {
-    const queueUrl = StringParameter.fromStringParameterAttributes(
-      this,
-      MESSAGES_QUEUE_URL_PARAMETER_ID,
-      { parameterName: MESSAGES_QUEUE_URL_PARAMETER_NAME, version: 1 },
-    ).stringValue
-
-    const deleteTrigger = this.buildLambdaFunction(buildProps.handler, {
-      MESSAGES_QUEUE_URL: queueUrl,
-    })
+    const deleteTrigger = this.buildLambdaFunction(buildProps.handler, {})
 
     deleteTrigger.addToRolePolicy(
       new iam.PolicyStatement({
@@ -58,8 +45,8 @@ class ExponentialBackoffStack extends Stack {
     deleteTrigger.addToRolePolicy(
       new iam.PolicyStatement({
         effect: iam.Effect.ALLOW,
-        actions: ['sqs:SendMessage'],
-        resources: [buildProps.queueArn],
+        actions: ['dynamodb:PutItem'],
+        resources: [buildProps.tableArn],
       }),
     )
 

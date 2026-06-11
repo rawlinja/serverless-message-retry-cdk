@@ -9,8 +9,6 @@ const queueUrl = process.env.MESSAGES_QUEUE_URL
 const sqsClient = new SQSClient({ region: 'us-east-1' })
 const repository = new MessageRepository('Messages')
 
-export const MAX_RETRIES = 5
-
 class MessageService {
   async queueMessage(message: Message) {
     const payload = JSON.stringify(this.buildQueueMessage(message))

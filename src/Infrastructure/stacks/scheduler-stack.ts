@@ -9,7 +9,7 @@ import * as Path from 'path'
 import { lambdaFunctionIdentifier } from './base-stack'
 
 const LAMBDA_JOBS_PATH = '../../lambda/jobs/index.ts'
-const LOOKBACK_DAYS = '30'
+const LOOKBACK_DAYS = '2'
 
 type SchedulerStackProps = StackProps & {
   handler: string

@@ -2,11 +2,12 @@ import { DynamoDBStreamEvent } from 'aws-lambda'
 import { unmarshall } from '@aws-sdk/util-dynamodb'
 import { AttributeValue } from '@aws-sdk/client-dynamodb'
 import { Logger } from '@aws-lambda-powertools/logger'
-import { MessageService, MAX_RETRIES } from '@lib/message-service'
+import { FailedMessageService, MAX_RETRIES } from '@lib/failed-message-service'
 import type { Message } from '@lib/types'
 
 const logger = new Logger({ serviceName: 'dynamodb-delete-trigger' })
-const service = new MessageService()
+const service = new FailedMessageService()
+
 const handler = async (event: DynamoDBStreamEvent): Promise<void> => {
   logger.info('Received DynamoDB stream event', { recordCount: event.Records.length })
 
@@ -34,12 +35,9 @@ const handler = async (event: DynamoDBStreamEvent): Promise<void> => {
         continue
       }
 
-      logger.info('Re-queuing message for retry', {
-        email: message.email,
-        nextRetryCount: retryCount + 1,
-      })
+      logger.info('Scheduling message for retry', { email: message.email, retryCount })
 
-      await service.queueMessage({ ...message, retryCount: retryCount + 1 })
+      await service.writeFailedMessage(message)
     } catch (error) {
       // Do not throw — would cause Lambda to retry the entire batch
       logger.error('Error processing REMOVE event, skipping record', { error })

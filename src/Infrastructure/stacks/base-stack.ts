@@ -61,7 +61,6 @@ export class BaseStack extends Stack {
       handler: 'index.delete',
       tableArn,
       tableStreamArn,
-      queueArn,
     })
 
     new RelayStack(scope, 'RelayStack', {

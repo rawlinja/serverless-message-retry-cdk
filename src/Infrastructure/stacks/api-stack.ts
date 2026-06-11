@@ -134,7 +134,7 @@ class ApiStack extends Stack {
           this.createRouteEnvironment(route.handler, messageQueueUrl),
           props.middyLayer,
         )
-        this.addRoutePermissions(lambda, route.handler, props.queueArn, props.tableArn)
+        this.addRoutePermissions(lambda, route.handler, props.queueArn)
 
         messagesResource?.addMethod(route.method, new apigateway.LambdaIntegration(lambda), {
           authorizer: props.authorizer,
@@ -151,19 +151,11 @@ class ApiStack extends Stack {
     return {}
   }
 
-  addRoutePermissions(
-    routeLambda: lambda.Function,
-    handler: string,
-    queueArn: string,
-    tableArn: string,
-  ) {
+  addRoutePermissions(routeLambda: lambda.Function, handler: string, queueArn: string) {
     if (handler === 'index.messagesPost') {
       routeLambda.addToRolePolicy(this.createSendMessagePolicyStatement(queueArn))
     }
 
-    if (handler === 'index.retryPost') {
-      routeLambda.addToRolePolicy(this.createPutItemPolicyStatement(tableArn))
-    }
   }
 
   getMessageQueueUrl(): string {
@@ -178,14 +170,6 @@ class ApiStack extends Stack {
       effect: iam.Effect.ALLOW,
       actions: ['sqs:SendMessage'],
       resources: [queueArn],
-    })
-  }
-
-  createPutItemPolicyStatement(tableArn: string): iam.PolicyStatement {
-    return new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: ['dynamodb:PutItem'],
-      resources: [tableArn],
     })
   }
 
