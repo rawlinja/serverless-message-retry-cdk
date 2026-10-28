@@ -279,12 +279,13 @@ type MessageRecord = Message & {
 
 ## Technology Choices
 
-| Technology                | Description                               |
-| ------------------------- | ----------------------------------------- |
-| Node.js 24.x              | LTS runtime, TypeScript execution via tsx |
-| ARM64 (Graviton2)         | Lambda compute architecture               |
-| Yarn 4.15.0               | Package manager                           |
-| AWS CDK 2.x               | Infrastructure as code                    |
-| API Gateway REST API (v1) | HTTP API with token authorizer support    |
-| Middy                     | Middleware framework for Lambda handlers  |
-| Jest + ts-jest            | Testing framework                         |
+| Technology                | Description                              |
+| ------------------------- | ---------------------------------------- |
+| Node.js 24.x              | Lambda runtime                           |
+| Node.js 26                | Tooling: CDK synth via tsx, CI           |
+| ARM64 (Graviton2)         | Lambda compute architecture              |
+| Yarn 4.15.0               | Package manager                          |
+| AWS CDK 2.x               | Infrastructure as code                   |
+| API Gateway REST API (v1) | HTTP API with token authorizer support   |
+| Middy                     | Middleware framework for Lambda handlers |
+| Jest + ts-jest            | Testing framework                        |

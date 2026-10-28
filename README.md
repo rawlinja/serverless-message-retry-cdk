@@ -208,7 +208,7 @@ yarn destroy      # Tear down the stack
 
 - AWS CDK 2.x
 - TypeScript
-- Node.js 24.x
+- Node.js 26 (tooling), 24.x (Lambda runtime)
 - AWS Lambda (ARM64)
 - API Gateway REST API
 - SQS
